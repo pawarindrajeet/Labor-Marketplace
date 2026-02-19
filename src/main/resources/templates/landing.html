@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Labor Marketplace</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/custom-theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="/"><i class="bi bi-leaf"></i> <span data-i18n="navbar_title">Labor Marketplace</span></a>
+    <div class="navbar-nav ms-auto align-items-center gap-3">
+      <select id="langSelector" class="lang-selector">
+        <option value="en">English</option>
+        <option value="mr">मराठी</option>
+      </select>
+      <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> <span data-i18n="navbar_login">Login</span></a>
+      <a class="nav-link" href="/register"><i class="bi bi-person-plus"></i> <span data-i18n="navbar_register">Register</span></a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero-section">
+  <div class="container">
+    <h1><i class="bi bi-briefcase-fill"></i> <span data-i18n="hero_heading">Find Work or Hire Workers</span></h1>
+    <p data-i18n="hero_subtitle">Connect farmers with skilled workers. Post jobs, find opportunities, and build your network.</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <!-- Statistics Section -->
+  <div class="row mb-5">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="stat-card">
+        <i class="bi bi-briefcase"></i>
+        <div class="stat-number" th:text="${jobs != null ? jobs.size() : 0}">0</div>
+        <div class="stat-label" data-i18n="stat_active_jobs">Active Jobs</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="stat-card">
+        <i class="bi bi-people"></i>
+        <div class="stat-number" th:text="${availabilities != null ? availabilities.size() : 0}">0</div>
+        <div class="stat-label" data-i18n="stat_available_workers">Available Workers</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="stat-card">
+        <i class="bi bi-geo-alt"></i>
+        <div class="stat-number" th:text="${towns != null ? towns.size() : 0}">0</div>
+        <div class="stat-label" data-i18n="stat_towns">Towns</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="stat-card">
+        <i class="bi bi-hand-thumbs-up"></i>
+        <div class="stat-number">100%</div>
+        <div class="stat-label" data-i18n="stat_trusted">Trusted</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter and Sort Options -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <label for="townFilter" class="form-label"><i class="bi bi-geo-alt"></i> <span data-i18n="filter_town">Filter by Town</span></label>
+      <select class="form-select" id="townFilter">
+        <option value="" data-i18n="filter_all_towns">All Towns</option>
+        <option th:each="town : ${towns}" th:value="${town.id}" th:text="${town.name}"></option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label for="genderFilter" class="form-label"><i class="bi bi-person"></i> <span data-i18n="filter_gender">Filter by Gender</span></label>
+      <select class="form-select" id="genderFilter">
+        <option value="" data-i18n="filter_all_genders">All Genders</option>
+        <option value="Male" data-i18n="filter_male">Male</option>
+        <option value="Female" data-i18n="filter_female">Female</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label for="sortOption" class="form-label"><i class="bi bi-sort-down"></i> <span data-i18n="sort_by">Sort By</span></label>
+      <select class="form-select" id="sortOption">
+        <option value="date" data-i18n="sort_newest">Date (Newest First)</option>
+        <option value="wage" data-i18n="sort_wage">Wage (High to Low)</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button class="btn btn-primary w-100" onclick="applyFilters()"><i class="bi bi-funnel"></i> <span data-i18n="apply_filters">Apply Filters</span></button>
+    </div>
+  </div>
+
+  <h2 class="section-title"><i class="bi bi-house-door"></i> <span data-i18n="browse_opportunities">Browse Opportunities</span></h2>
+
+  <div class="row">
+    <aside class="col-12 col-md-3 sidebar">
+      <div class="list-group">
+        <button type="button" class="list-group-item list-group-item-action active" onclick="showSection('all')"><i class="bi bi-collection"></i> <span data-i18n="all_posts">All Posts</span></button>
+        <button type="button" class="list-group-item list-group-item-action" onclick="showSection('farmer')"><i class="bi bi-person-badge"></i> <span data-i18n="farmer_posts">Farmer Posts</span></button>
+        <button type="button" class="list-group-item list-group-item-action" onclick="showSection('worker')"><i class="bi bi-briefcase"></i> <span data-i18n="worker_posts">Worker Posts</span></button>
+        <a href="/login" class="list-group-item list-group-item-action"><i class="bi bi-plus-circle"></i> <span data-i18n="post_or_availability">Post Job/Availability</span></a>
+      </div>
+    </aside>
+    <main class="col-12 col-md-9">
+      <div id="all-section" class="section">
+        <h3>All Posts</h3>
+        <div th:each="job : ${jobs}" th:if="${job.town != null}" class="card mb-3 job-card" th:data-town="${job.town.id}" th:data-date="${#temporals.format(job.createdAt, 'yyyy-MM-dd')}" th:data-wage="${job.wage != null ? job.wage : 0}">
+          <div class="card-body">
+            <h5 th:text="${job.workType}">Job</h5>
+            <p th:text="${job.description}"></p>
+            <p><span data-i18n="farmer_name">Farmer Name</span>: <span th:text="${job.farmer.name}"></span></p>
+            <p>Contact: <span th:text="${job.farmer.mobile}"></span></p>
+            <p>Wage: ₹<span th:text="${job.wage != null ? job.wage : 'Not specified'}"></span></p>
+            <p>Workers needed: <span th:text="${job.workersNeeded}"></span></p>
+            <p th:if="${job.skillsRequired}">Skills: <span th:text="${job.skillsRequired}"></span></p>
+            <p th:if="${job.preferredGender}">Preferred Gender: <span th:text="${job.preferredGender}"></span></p>
+            <p>From: <span th:text="${#temporals.format(job.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${job.endDate != null}" th:text="'To ' + ${#temporals.format(job.endDate, 'd MMM yyyy h:mm a')}"></span></p>
+            <p>Town: <span th:text="${job.town.name}"></span></p>
+            <span class="badge bg-secondary">Farmer Post</span>
+            <p>Interests Received: <span th:text="${job.workersResponded}"></span></p>
+          </div>
+        </div>
+        <div th:each="availability : ${availabilities}" th:if="${availability.worker != null and availability.worker.town != null}" class="card mb-3 availability-card" th:data-town="${availability.worker.town.id}" th:data-gender="${availability.worker.gender}" th:data-date="${#temporals.format(availability.createdAt, 'yyyy-MM-dd')}">
+          <div class="card-body">
+            <h5><span data-i18n="worker_name">Worker Name</span>: <span th:text="${availability.worker.name}"></span></h5>
+            <p>Skills: <span th:text="${availability.skills}"></span></p>
+            <p>Availability: <span th:text="${availability.availability}"></span></p>
+            <p>Expected Wage: ₹<span th:text="${availability.wage != null ? availability.wage : 'Not specified'}"></span></p>
+            <p>From: <span th:text="${#temporals.format(availability.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${availability.endDate != null}" th:text="'To ' + ${#temporals.format(availability.endDate, 'd MMM yyyy h:mm a')}"></span></p>
+            <p>Town: <span th:text="${availability.worker.town.name}"></span></p>
+            <p>Contact: <span th:text="${availability.worker.mobile}"></span></p>
+            <span class="badge bg-success">Worker Post</span>
+          </div>
+        </div>
+      </div>
+      <div id="farmer-section" class="section" style="display: none;">
+        <h3>Farmer Posts</h3>
+        <div th:each="job : ${jobs}" th:if="${job.town != null}" class="card mb-3 job-card" th:data-town="${job.town.id}" th:data-date="${#temporals.format(job.createdAt, 'yyyy-MM-dd')}" th:data-wage="${job.wage != null ? job.wage : 0}">
+          <div class="card-body">
+            <h5 th:text="${job.workType}">Job</h5>
+            <p th:text="${job.description}"></p>
+            <p><span data-i18n="farmer_name">Farmer Name</span>: <span th:text="${job.farmer.name}"></span></p>
+            <p>Contact: <span th:text="${job.farmer.mobile}"></span></p>
+            <p>Wage: ₹<span th:text="${job.wage != null ? job.wage : 'Not specified'}"></span></p>
+            <p>Workers needed: <span th:text="${job.workersNeeded}"></span></p>
+            <p th:if="${job.skillsRequired}">Skills: <span th:text="${job.skillsRequired}"></span></p>
+            <p th:if="${job.preferredGender}">Preferred Gender: <span th:text="${job.preferredGender}"></span></p>
+            <p>From: <span th:text="${#temporals.format(job.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${job.endDate != null}" th:text="'To ' + ${#temporals.format(job.endDate, 'd MMM yyyy h:mm a')}"></span></p>
+            <p>Town: <span th:text="${job.town.name}"></span></p>
+            <span class="badge bg-secondary">Farmer Post</span>
+            <p>Interests Received: <span th:text="${job.workersResponded}"></span></p>
+          </div>
+        </div>
+      </div>
+      <div id="worker-section" class="section" style="display: none;">
+        <h3>Worker Posts</h3>
+        <div th:each="availability : ${availabilities}" th:if="${availability.worker != null and availability.worker.town != null}" class="card mb-3 availability-card" th:data-town="${availability.worker.town.id}" th:data-gender="${availability.worker.gender}" th:data-date="${#temporals.format(availability.createdAt, 'yyyy-MM-dd')}">
+          <div class="card-body">
+            <h5><span data-i18n="worker_name">Worker Name</span>: <span th:text="${availability.worker.name}"></span></h5>
+            <p>Skills: <span th:text="${availability.skills}"></span></p>
+            <p>Availability: <span th:text="${availability.availability}"></span></p>
+            <p>Expected Wage: ₹<span th:text="${availability.wage != null ? availability.wage : 'Not specified'}"></span></p>
+            <p>From: <span th:text="${#temporals.format(availability.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${availability.endDate != null}" th:text="'To ' + ${#temporals.format(availability.endDate, 'd MMM yyyy h:mm a')}"></span></p>
+            <p>Town: <span th:text="${availability.worker.town.name}"></span></p>
+            <p>Contact: <span th:text="${availability.worker.mobile}"></span></p>
+            <span class="badge bg-success">Worker Post</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<a href="/login" class="fab" title="Post New Job"><i class="bi bi-plus-lg"></i></a>
+
+<script>
+function showSection(section) {
+  // Hide all sections
+  document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+  // Show selected section
+  document.getElementById(section + '-section').style.display = 'block';
+  // Update active button
+  document.querySelectorAll('.list-group-item').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function applyFilters() {
+  const townFilter = document.getElementById('townFilter').value;
+  const genderFilter = document.getElementById('genderFilter').value;
+  const sortOption = document.getElementById('sortOption').value;
+
+  // Get visible section
+  const visibleSection = document.querySelector('.section:not([style*="display: none"])');
+  if (!visibleSection) return;
+
+  const sectionId = visibleSection.id;
+
+  if (sectionId === 'all-section') {
+    // Filter jobs
+    const jobCards = Array.from(visibleSection.querySelectorAll('.job-card'));
+    jobCards.forEach(card => {
+      const town = card.dataset.town;
+      const townMatch = townFilter === '' || town === townFilter;
+      card.style.display = townMatch ? 'block' : 'none';
+    });
+
+    // Filter availabilities
+    const availabilityCards = Array.from(visibleSection.querySelectorAll('.availability-card'));
+    availabilityCards.forEach(card => {
+      const town = card.dataset.town;
+      const gender = card.dataset.gender;
+      const townMatch = townFilter === '' || town === townFilter;
+      const genderMatch = genderFilter === '' || gender === genderFilter;
+      card.style.display = townMatch && genderMatch ? 'block' : 'none';
+    });
+
+    // Sort jobs
+    if (sortOption === 'wage') {
+      jobCards.sort((a, b) => Number.parseFloat(b.dataset.wage) - Number.parseFloat(a.dataset.wage));
+    } else {
+      jobCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
+    }
+    jobCards.forEach(card => visibleSection.appendChild(card));
+
+    // Sort availabilities
+    availabilityCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
+    availabilityCards.forEach(card => visibleSection.appendChild(card));
+  } else if (sectionId === 'farmer-section') {
+    // Filter and sort availabilities
+    const availabilityCards = Array.from(visibleSection.querySelectorAll('.availability-card'));
+    availabilityCards.forEach(card => {
+      const town = card.dataset.town;
+      const gender = card.dataset.gender;
+      const townMatch = townFilter === '' || town === townFilter;
+      const genderMatch = genderFilter === '' || gender === genderFilter;
+      card.style.display = townMatch && genderMatch ? 'block' : 'none';
+    });
+
+    // Sort availabilities
+    availabilityCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
+    availabilityCards.forEach(card => visibleSection.appendChild(card));
+  }
+}
+</script>
+<script src="/translations.js"></script>
+
+</body>
+</html>
