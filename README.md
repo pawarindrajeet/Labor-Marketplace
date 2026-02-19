@@ -447,7 +447,7 @@ This project is proprietary and for educational purposes.
 
 ## 👨‍💻 Author
 
-**Pankaj** - Created for farmers and workers in Maharashtra
+**Indrajeet** - Created for farmers and workers in Maharashtra
 
 ---
 
@@ -487,4 +487,4 @@ For issues or questions:
 
 **Happy coding! 🚀**
 
-Last Updated: February 2, 2026
+Last Updated: February 19, 2026
