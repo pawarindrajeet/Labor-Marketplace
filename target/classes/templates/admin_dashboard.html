@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin Dashboard - Shetkari-Kamgar</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    .bg-admin { background-color: #1e293b !important; color: white !important; }
+  </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg bg-admin shadow-sm mb-4 py-3">
+  <div class="container">
+    <a class="navbar-brand text-white fw-bold" href="/admin/dashboard"><i class="bi bi-shield-lock-fill text-warning"></i> Admin Control Panel</a>
+    <div class="navbar-nav ms-auto align-items-center gap-3">
+      <form class="d-inline" th:action="@{/logout}" method="post">
+        <button class="btn btn-outline-warning btn-sm rounded-pill px-4" type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0 fw-bold text-dark"><i class="bi bi-people-fill text-primary"></i> Manage Users</h4>
+          <span class="badge bg-primary rounded-pill fs-6" th:text="${users.size()} + ' Total Users'"></span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="px-4 py-3">ID</th>
+                  <th class="py-3">Name</th>
+                  <th class="py-3">Mobile Number</th>
+                  <th class="py-3">Role</th>
+                  <th class="py-3 text-center">Status</th>
+                  <th class="px-4 py-3 text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="u : ${users}" th:if="${u.role != 'Admin'}">
+                  <td class="px-4 fw-bold text-muted" th:text="'#' + ${u.id}"></td>
+                  <td><div class="fw-bold text-dark" th:text="${u.name}"></div></td>
+                  <td th:text="${u.mobile}"></td>
+                  <td>
+                    <span th:if="${u.role == 'Farmer'}" class="badge bg-success" th:text="${u.role}"></span>
+                    <span th:if="${u.role == 'Worker'}" class="badge bg-orange" style="background-color: #f97316;" th:text="${u.role}"></span>
+                  </td>
+                  <td class="text-center">
+                    <span th:if="${u.isBanned != true}" class="badge bg-light text-success border border-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                    <span th:if="${u.isBanned == true}" class="badge bg-light text-danger border border-danger"><i class="bi bi-slash-circle-fill"></i> Banned</span>
+                  </td>
+                  <td class="px-4 text-end">
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                      <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3" data-bs-toggle="modal" th:data-bs-target="'#userModal' + ${u.id}"><i class="bi bi-eye"></i> View</button>
+                      <form th:action="@{/admin/toggle-ban}" method="post" class="m-0">
+                        <input type="hidden" name="userId" th:value="${u.id}">
+                        <button th:if="${u.isBanned != true}" type="submit" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3" onclick="return confirm('Ban this user?')"><i class="bi bi-hammer"></i> Ban</button>
+                        <button th:if="${u.isBanned == true}" type="submit" class="btn btn-sm btn-success fw-bold rounded-pill px-3" onclick="return confirm('Restore this user?')"><i class="bi bi-arrow-counterclockwise"></i> Unban</button>
+                      </form>
+                    </div>
+
+                    <div class="modal fade text-start" th:id="'userModal' + ${u.id}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                          <div class="modal-header bg-light">
+                            <h5 class="modal-title fw-bold text-dark"><i class="bi bi-person-vcard text-primary me-2"></i> User Profile</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body p-4 text-dark">
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">User ID:</div><div class="col-7" th:text="'#' + ${u.id}"></div></div>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Full Name:</div><div class="col-7 fw-bold" th:text="${u.name}"></div></div>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Mobile:</div><div class="col-7"><a th:href="'tel:' + ${u.mobile}" th:text="${u.mobile}" class="text-decoration-none"></a></div></div>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Role:</div><div class="col-7" th:text="${u.role}"></div></div>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Gender:</div><div class="col-7" th:text="${u.gender}"></div></div>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Location:</div><div class="col-7" th:text="${u.town != null ? u.town.name : 'Unknown'}"></div></div>
+                          </div>
+                          <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div th:if="${users.size() <= 1}" class="text-center p-5"><h5 class="text-muted">No users registered yet.</h5></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0 fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill text-danger"></i> User Grievances & Complaints</h4>
+          <span th:if="${complaints != null}" class="badge bg-danger rounded-pill fs-6" th:text="${complaints.size()} + ' Total'"></span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="px-4 py-3">Date</th>
+                  <th class="py-3">Raised By</th>
+                  <th class="py-3">Subject</th>
+                  <th class="py-3" style="max-width: 300px;">Description</th>
+                  <th class="py-3 text-center">Status</th>
+                  <th class="px-4 py-3 text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="c : ${complaints}">
+                  <td class="px-4 text-muted small" th:text="${#temporals.format(c.createdAt, 'd MMM yyyy')}"></td>
+                  <td>
+                    <div class="fw-bold text-dark" th:text="${c.raisedBy.name}"></div>
+                    <div class="small text-muted" th:text="${c.raisedBy.role} + ' | ' + ${c.raisedBy.mobile}"></div>
+                  </td>
+                  <td class="fw-bold text-dark" th:text="${c.subject}"></td>
+                  <td class="text-muted small text-truncate" style="max-width: 300px;" th:text="${c.description}"></td>
+                  <td class="text-center">
+                    <span th:if="${c.status == 'Pending'}" class="badge bg-warning text-dark border border-warning"><i class="bi bi-hourglass-split"></i> Pending</span>
+                    <span th:if="${c.status == 'Resolved'}" class="badge bg-success border border-success"><i class="bi bi-check2-all"></i> Resolved</span>
+                  </td>
+                  <td class="px-4 text-end">
+                    <form th:if="${c.status == 'Pending'}" th:action="@{/admin/resolve-complaint}" method="post" class="m-0">
+                      <input type="hidden" name="complaintId" th:value="${c.id}">
+                      <button type="submit" class="btn btn-sm btn-outline-success fw-bold rounded-pill px-3" onclick="return confirm('Mark this issue as resolved?')">
+                        <i class="bi bi-check-lg"></i> Mark Resolved
+                      </button>
+                    </form>
+                    <span th:if="${c.status == 'Resolved'}" class="text-success fw-bold small"><i class="bi bi-shield-check"></i> Handled</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div th:if="${complaints == null or complaints.isEmpty()}" class="text-center p-5">
+            <i class="bi bi-emoji-smile text-success display-4 d-block mb-3"></i>
+            <h5 class="text-muted">No complaints! Everyone is happy.</h5>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

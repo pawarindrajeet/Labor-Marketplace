@@ -725,3 +725,27 @@ h4 { font-size: 1.1rem; }
   color: var(--text-dark);
   margin-bottom: 0.5rem;
 }
+
+/* --- Fix Text Colors on Dark Green Backgrounds --- */
+
+/* 1. Landing Page Hero Text */
+.hero-section h1, 
+.hero-section h1 i,
+.hero-section p {
+    color: #ffffff !important; 
+}
+
+/* 2. Login & Register Card Headers */
+.card-header,
+.card-header h4,
+.card-header h4 i,
+.card-header h4 span {
+    color: #ffffff !important;
+}
+
+/* --- Fix Language Dropdown Arrow Overlap --- */
+#langSelector {
+    padding-right: 2rem !important; /* Forces extra space on the right side for the arrow */
+    min-width: 110px; /* Gives the box a nice consistent width whether it says English or मराठी */
+    cursor: pointer;
+}

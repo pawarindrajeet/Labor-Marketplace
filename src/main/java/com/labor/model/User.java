@@ -14,12 +14,15 @@ public class User {
     private String password;
     private String role;
     private String gender;
+    
+    // NEW FIELD: So the Admin can ban rule-breakers
+    private Boolean isBanned = false; 
 
     @ManyToOne
     @JoinColumn(name = "town_id")
     private Town town;
 
-    // Getters and setters
+    // Existing Getters and setters
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
     public String getName() { return name; }
@@ -34,4 +37,8 @@ public class User {
     public void setGender(String gender) { this.gender = gender; }
     public Town getTown() { return town; }
     public void setTown(Town town) { this.town = town; }
+    
+    // NEW Getter and Setter for the Ban feature
+    public Boolean getIsBanned() { return isBanned; }
+    public void setIsBanned(Boolean isBanned) { this.isBanned = isBanned; }
 }

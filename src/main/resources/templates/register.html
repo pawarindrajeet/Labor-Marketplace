@@ -3,65 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register - Labor Marketplace</title>
+  <title>Register - Shetkari-Kamgar</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  
+  <link rel="stylesheet" href="/custom-theme.css">
+  
+  <style>
+    .bg-orange { background-color: #f97316 !important; color: white !important; }
+    .btn-orange { background-color: #f97316 !important; color: white !important; border: none; }
+    .btn-orange:hover { background-color: #ea580c !important; }
+    .text-orange { color: #f97316 !important; }
+    .text-orange:hover { color: #ea580c !important; }
+  </style>
 </head>
 <body class="bg-light">
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-md-6">
       <div class="card shadow">
-        <div class="card-header bg-primary text-white text-center">
-          <h4><i class="bi bi-person-plus"></i> Register for Labor Marketplace</h4>
+        <div class="card-header bg-orange text-center">
+          <h4><i class="bi bi-person-plus"></i> <span data-i18n="register_title">Register for Shetkari-Kamgar</span></h4>
         </div>
         <div class="card-body">
           <form th:action="@{/register}" method="post">
             <div class="mb-3">
-              <label for="name" class="form-label">Full Name</label>
+              <label for="name" class="form-label" data-i18n="full_name">Full Name</label>
               <input type="text" class="form-control" id="name" name="name" required>
             </div>
             <div class="mb-3">
-              <label for="mobile" class="form-label">Mobile Number</label>
+              <label for="mobile" class="form-label" data-i18n="mobile_number">Mobile Number</label>
               <input type="tel" class="form-control" id="mobile" name="mobile" required>
             </div>
             <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
+              <label for="password" class="form-label" data-i18n="password">Password</label>
               <input type="password" class="form-control" id="password" name="password" required>
             </div>
             <div class="mb-3">
-              <label for="role" class="form-label">Role</label>
+              <label for="role" class="form-label" data-i18n="role">Role</label>
               <select class="form-select" id="role" name="role" required>
-                <option value="">Select Role</option>
-                <option value="Farmer">Farmer</option>
-                <option value="Worker">Worker (Helper)</option>
+                <option value="" data-i18n="select_role">Select Role</option>
+                <option value="Farmer" data-i18n="farmer">Farmer</option>
+                <option value="Worker" data-i18n="worker_helper">Worker (Helper)</option>
               </select>
             </div>
             <div class="mb-3">
-              <label for="gender" class="form-label">Gender</label>
+              <label for="gender" class="form-label" data-i18n="gender">Gender</label>
               <select class="form-select" id="gender" name="gender" required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="" data-i18n="select_gender">Select Gender</option>
+                <option value="Male" data-i18n="male">Male</option>
+                <option value="Female" data-i18n="female">Female</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label for="town" class="form-label">Town</label>
-              <select class="form-select" id="town" name="townId" required>
-                <option value="">Select Town</option>
-                <option th:each="town : ${towns}" th:value="${town.id}" th:text="${town.name}"></option>
-              </select>
+
+            <div class="mb-3 p-3 bg-light border rounded">
+              <label class="form-label fw-bold text-success"><i class="bi bi-geo-alt-fill"></i> Select Location</label>
+              
+              <div class="mb-2">
+                <select class="form-select" id="stateSelector" onchange="updateDistricts()">
+                  <option value="">1. Select State</option>
+                </select>
+              </div>
+
+              <div class="mb-2">
+                <select class="form-select" id="districtSelector" onchange="updateTowns()" disabled>
+                  <option value="">2. First Select State</option>
+                </select>
+              </div>
+
+              <div>
+                <select class="form-select border-success" id="town" name="townId" required disabled>
+                  <option value="" id="townPlaceholder">3. First Select District</option>
+                  <option th:each="town : ${towns}" 
+                          th:value="${town.id}" 
+                          th:text="${town.name}" 
+                          th:data-name="${town.name}" 
+                          class="backend-town-option" 
+                          style="display: none;">
+                  </option>
+                </select>
+              </div>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Register</button>
+            <button type="submit" class="btn btn-orange w-100 mt-3" data-i18n="navbar_register">Register</button>
           </form>
         </div>
         <div class="card-footer text-center">
-          <a href="/" class="text-decoration-none">Back to Home</a>
+          <a href="/" class="text-decoration-none text-orange" data-i18n="back_to_home">Back to Home</a>
         </div>
       </div>
     </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/translations.js"></script>
+
+<script>
+  // 1. The Location Database (Map your villages to districts here!)
+  const locationData = {
+    "Maharashtra": {
+      "Sangli": [
+        "Agar", "Ankali", "Arag", "Balwad", "Bamnoli", "Bedag", "Belanki", "Bhose", 
+        "Bijageri", "Brahmanpuri", "Budhavgaon", "Chinchani", "Dhavali", "Dudhani", 
+        "Ganeshpur", "Garlawad", "Gudhe", "Gulvanchi", "Harnal", "Ingalgi", "Jambli", 
+        "Kadiyanal", "Kavthepiran", "Khanderajuri", "Kukudwad", "Kupwad (CT)", "Laxmiwadi", 
+        "Madihal", "Malgaon", "Maliwadi", "Mangrul", "Miraj (M Cl)", "Mhaisal", "Narwad", 
+        "Nandre", "Nandani", "Nimshirgaon", "Padali", "Patgaon", "Rupbhavani", "Sagara", 
+        "Sangli (M Corp)", "Sangliwadi (CT)", "Soni", "Tupari", "Wanlesswadi (CT)", "Yesugade"
+      ],
+      "Kolhapur": [
+        "Alate", "Anjani", "Bhilawadi"
+      ],
+      "Satara": [
+        "Dahiwadi", "Borgaon", "Amaljheri", "Balawadi", "Choudeshwar", "Dhamani", 
+        "Dhawali", "Dhavalipur", "Dongarsoni", "Ghanand", "Ghatnandre"
+      ]
+    },
+    "Karnataka": {
+      "Belagavi": [] // Add border towns here if needed
+    }
+  };
+
+  // 2. Load States automatically
+  document.addEventListener("DOMContentLoaded", function() {
+    const stateSelect = document.getElementById("stateSelector");
+    for (let state in locationData) {
+      let option = document.createElement("option");
+      option.value = state;
+      option.text = state;
+      stateSelect.add(option);
+    }
+  });
+
+  // 3. Update Districts when State is clicked
+  function updateDistricts() {
+    const stateSelect = document.getElementById("stateSelector");
+    const districtSelect = document.getElementById("districtSelector");
+    const townSelect = document.getElementById("town");
+    
+    districtSelect.innerHTML = '<option value="">2. Select District</option>';
+    townSelect.value = "";
+    townSelect.disabled = true;
+    document.getElementById("townPlaceholder").text = "3. First Select District";
+
+    const selectedState = stateSelect.value;
+    
+    if (selectedState !== "") {
+      districtSelect.disabled = false;
+      const districts = locationData[selectedState];
+      
+      for (let district in districts) {
+        let option = document.createElement("option");
+        option.value = district;
+        option.text = district;
+        districtSelect.add(option);
+      }
+    } else {
+      districtSelect.disabled = true;
+    }
+  }
+
+  // 4. Update Villages when District is clicked
+  function updateTowns() {
+    const stateSelect = document.getElementById("stateSelector");
+    const districtSelect = document.getElementById("districtSelector");
+    const townSelect = document.getElementById("town");
+    const allBackendTowns = document.querySelectorAll(".backend-town-option");
+    
+    const selectedState = stateSelect.value;
+    const selectedDistrict = districtSelect.value;
+    
+    townSelect.value = ""; 
+
+    if (selectedDistrict !== "") {
+      townSelect.disabled = false;
+      document.getElementById("townPlaceholder").text = "3. Select Village / Town";
+      const validVillages = locationData[selectedState][selectedDistrict];
+      
+      // Look through all Java database options and only show ones matching this district
+      allBackendTowns.forEach(option => {
+        const villageName = option.getAttribute("data-name"); // Use data-name to avoid translation issues!
+        
+        if (validVillages.includes(villageName)) {
+          option.style.display = ""; // Show it
+        } else {
+          option.style.display = "none";  // Hide it
+        }
+      });
+    } else {
+      townSelect.disabled = true;
+      document.getElementById("townPlaceholder").text = "3. First Select District";
+      allBackendTowns.forEach(opt => opt.style.display = "none");
+    }
+  }
+</script>
 </body>
 </html>

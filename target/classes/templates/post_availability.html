@@ -3,65 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Post Availability - Labor Marketplace</title>
+  <title>Post Availability - Shetkari-Kamgar</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="/custom-theme.css">
+  <style>
+    .bg-orange { background-color: #f97316 !important; color: white !important; }
+    .btn-orange { background-color: #f97316 !important; color: white !important; border: none; }
+    .btn-orange:hover { background-color: #ea580c !important; }
+  </style>
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+
+<nav class="navbar navbar-expand-lg bg-white shadow-sm mb-4">
   <div class="container">
-    <a class="navbar-brand" href="/">Labor Marketplace</a>
-    <div class="navbar-nav ms-auto">
-      <a class="nav-link" href="/dashboard">Dashboard</a>
+    <a class="navbar-brand text-success fw-bold" href="/"><i class="bi bi-leaf"></i> <span data-i18n="navbar_title">Shetkari-Kamgar</span></a>
+    <div class="navbar-nav ms-auto align-items-center gap-3">
+      <select id="langSelector" class="form-select form-select-sm w-auto rounded-pill px-3 fw-bold bg-light" style="min-width: 110px;">
+        <option value="en">English</option>
+        <option value="mr">मराठी</option>
+      </select>
+      <a class="nav-link fw-bold text-secondary" href="/dashboard"><i class="bi bi-speedometer2"></i> <span data-i18n="worker_dashboard">Dashboard</span></a>
       <form class="d-inline" th:action="@{/logout}" method="post">
-        <button class="btn btn-link nav-link" type="submit">Logout</button>
+        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" type="submit"><i class="bi bi-box-arrow-right"></i> <span data-i18n="navbar_logout">Logout</span></button>
       </form>
     </div>
   </div>
 </nav>
-<div class="container py-5">
+
+<div class="container py-4">
   <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-header bg-success text-white text-center">
-          <h4><i class="bi bi-plus-circle"></i> Post Your Availability</h4>
+      <div class="card shadow border-0 rounded-4">
+        <div class="card-header bg-orange text-center py-3 rounded-top-4">
+          <h4 class="mb-0 fw-bold"><i class="bi bi-megaphone-fill"></i> <span data-i18n="post_availability_title">Post Your Availability</span></h4>
         </div>
-        <div class="card-body">
+        <div class="card-body p-4">
           <form th:action="@{/post-availability}" method="post">
+            
             <div class="mb-3">
-              <label for="skills" class="form-label">Skills</label>
-              <input type="text" class="form-control" id="skills" name="skills" placeholder="e.g., Farming, Ploughing" required>
+              <label for="skills" class="form-label fw-bold text-secondary"><i class="bi bi-tools"></i> <span data-i18n="skills_label">Skills</span></label>
+              <input type="text" class="form-control bg-light border-0" id="skills" name="skills" data-i18n-placeholder="skills_placeholder" placeholder="e.g., Farming, Ploughing, Harvesting" required>
             </div>
+            
             <div class="mb-3">
-              <label for="availability" class="form-label">Availability</label>
-              <textarea class="form-control" id="availability" name="availability" rows="3" placeholder="e.g., Available from Monday to Friday, 8 AM to 6 PM" required></textarea>
+              <label for="availability" class="form-label fw-bold text-secondary"><i class="bi bi-info-circle"></i> <span data-i18n="availability_details_label">Availability Details</span></label>
+              <textarea class="form-control bg-light border-0" id="availability" name="availability" rows="3" data-i18n-placeholder="availability_placeholder" placeholder="e.g., Available from Monday to Friday, 8 AM to 6 PM" required></textarea>
             </div>
-            <div class="mb-3">
-              <label for="wage" class="form-label">Expected Wage per Day (₹)</label>
-              <input type="number" step="0.01" class="form-control" id="wage" name="wage" required>
+            
+            <div class="mb-4">
+              <label for="wage" class="form-label fw-bold text-secondary"><i class="bi bi-cash"></i> <span data-i18n="expected_wage_label">Expected Wage per Day (₹)</span></label>
+              <input type="number" step="0.01" class="form-control bg-light border-0 w-50" id="wage" name="wage" data-i18n-placeholder="wage_placeholder" placeholder="e.g., 500" required>
             </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="startDate" class="form-label"><i class="bi bi-calendar-event"></i> Start Date & Time</label>
-                <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
-                <div class="form-text">Example: 3 Mar 2026 9:00 AM</div>
+
+            <div class="mb-4 p-3 bg-light border rounded-3">
+              <label class="form-label fw-bold text-success"><i class="bi bi-geo-alt-fill"></i> <span data-i18n="work_location_label">Work Location</span></label>
+              
+              <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                  <select class="form-select border-0" id="stateSelector" onchange="updateDistricts()">
+                    <option value="" data-i18n="select_state">1. Select State</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <select class="form-select border-0" id="districtSelector" onchange="updateTowns()" disabled>
+                    <option value="" data-i18n="first_select_state">2. First Select State</option>
+                  </select>
+                </div>
               </div>
-              <div class="col-md-6 mb-3">
-                <label for="endDate" class="form-label"><i class="bi bi-calendar-check"></i> End Date & Time</label>
-                <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
-                <div class="form-text">Example: 4 Mar 2026 5:00 PM</div>
+              
+              <div>
+                <select class="form-select border-success fw-bold" id="townSelector" name="town.id" required disabled>
+                  <option value="" data-i18n="select_village">3. Select Village / Town</option>
+                  <option th:each="town : ${towns}" 
+                          th:value="${town.id}" 
+                          th:text="${town.name}" 
+                          th:data-name="${town.name}" 
+                          class="backend-town-option" 
+                          style="display: none;">
+                  </option>
+                </select>
               </div>
             </div>
-            <button type="submit" class="btn btn-success w-100">Post Availability</button>
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label for="startDate" class="form-label fw-bold text-secondary"><i class="bi bi-calendar-event text-success"></i> <span data-i18n="start_date_label">Start Date & Time</span></label>
+                <input type="datetime-local" class="form-control bg-light border-0" id="startDate" name="startDate" required>
+                <div class="form-text small text-muted" data-i18n="example_start_date">Example: 3 Mar 2026 9:00 AM</div>
+              </div>
+              <div class="col-md-6">
+                <label for="endDate" class="form-label fw-bold text-secondary"><i class="bi bi-calendar-x text-danger"></i> <span data-i18n="end_date_label">End Date & Time</span></label>
+                <input type="datetime-local" class="form-control bg-light border-0" id="endDate" name="endDate" required>
+                <div class="form-text small text-muted" data-i18n="example_end_date">Example: 4 Mar 2026 5:00 PM</div>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-orange btn-lg w-100 fw-bold shadow-sm"><i class="bi bi-send-fill"></i> <span data-i18n="post_avail_btn">Post Availability</span></button>
           </form>
         </div>
       </div>
     </div>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
+  // Date Picker Logic
   flatpickr("#startDate", {
     enableTime: true,
     dateFormat: "Y-m-d H:i",
@@ -80,5 +128,9 @@
   });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="/translations.js?v=2"></script>
+<script src="/location.js?v=2"></script>
+
 </body>
 </html>

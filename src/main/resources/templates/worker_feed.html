@@ -5,151 +5,193 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="_csrf" th:content="${_csrf.token}">
   <meta name="_csrf_header" th:content="${_csrf.headerName}">
-  <title>Worker Dashboard</title>
+  
+  <title>Worker Dashboard - Shetkari-Kamgar</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/custom-theme.css">
+  <style>
+    .action-banner { background: linear-gradient(135deg, #f97316, #ea580c); border: none; }
+    .empty-state { border: 2px dashed #dee2e6; border-radius: 10px; background-color: #f8f9fa; }
+  </style>
 </head>
-<body>
-<nav class="navbar navbar-expand-lg">
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg bg-white shadow-sm mb-4">
   <div class="container">
-    <a class="navbar-brand" href="/"><i class="bi bi-leaf"></i> <span data-i18n="navbar_title">Labor Marketplace</span></a>
+    <a class="navbar-brand text-success fw-bold" href="/"><i class="bi bi-leaf"></i> <span data-i18n="navbar_title">Shetkari-Kamgar</span></a>
     <div class="navbar-nav ms-auto align-items-center gap-3">
-      <select id="langSelector" class="lang-selector">
+      <select id="langSelector" class="form-select form-select-sm w-auto">
         <option value="en">English</option>
         <option value="mr">मराठी</option>
       </select>
       <form class="d-inline" th:action="@{/logout}" method="post">
-        <button class="btn btn-link nav-link" type="submit"><i class="bi bi-box-arrow-right"></i> <span data-i18n="navbar_logout">Logout</span></button>
+        <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-box-arrow-right"></i> <span data-i18n="navbar_logout">Logout</span></button>
       </form>
     </div>
   </div>
 </nav>
 
-<div class="container py-4">
-  <div class="alert alert-success" role="alert">
-    <i class="bi bi-check-circle"></i> <span data-i18n="logged_in_worker">You are logged in as Worker</span>
+<div class="container py-2">
+  <div class="alert alert-success shadow-sm border-0 mb-4" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> <span data-i18n="logged_in_worker">You are logged in as Worker</span>
+  </div>
+
+  <div th:if="${param.complaintSubmitted}" class="alert alert-warning shadow-sm border-0 mb-4" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> <span data-i18n="complaint_submitted_success">Your complaint has been submitted securely to the Admin for review.</span>
   </div>
 
   <div class="row">
-    <aside class="col-12 col-md-3 sidebar">
-      <div class="list-group sticky-top" style="top: 1rem;">
-        <button type="button" class="list-group-item list-group-item-action active" onclick="showSection('all')"><i class="bi bi-collection"></i> <span data-i18n="all_posts">All Posts</span></button>
-        <button type="button" class="list-group-item list-group-item-action" onclick="showSection('farmer')"><i class="bi bi-person-badge"></i> <span data-i18n="farmer_posts">Farmer Posts</span></button>
-        <button type="button" class="list-group-item list-group-item-action" onclick="showSection('worker')"><i class="bi bi-briefcase"></i> <span data-i18n="worker_posts">Worker Posts</span></button>
-        <a href="/post-availability" class="list-group-item list-group-item-action"><i class="bi bi-plus-circle"></i> <span data-i18n="post_availability">Post Availability</span></a>
+    <aside class="col-12 col-md-3 sidebar mb-4">
+      <div class="list-group shadow-sm sticky-top" style="top: 1rem;">
+        <button type="button" class="list-group-item list-group-item-action active fw-bold py-3" onclick="showSection('all', this)"><i class="bi bi-grid-1x2-fill me-2 text-warning"></i> <span data-i18n="all_posts">Dashboard Overview</span></button>
+        <button type="button" class="list-group-item list-group-item-action py-3" onclick="showSection('jobs', this)"><i class="bi bi-briefcase-fill me-2 text-success"></i> <span data-i18n="farmer_posts">Find Farm Jobs</span></button>
+        <button type="button" class="list-group-item list-group-item-action py-3" onclick="showSection('history', this)"><i class="bi bi-clock-history me-2 text-primary"></i> <span data-i18n="my_applications">My Applications</span></button>
+        <hr class="my-2">
+        <button type="button" class="list-group-item list-group-item-action py-3 text-danger fw-bold" data-bs-toggle="modal" data-bs-target="#complaintModal">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> <span data-i18n="report_issue">Report Issue</span>
+        </button>
       </div>
     </aside>
+
     <main class="col-12 col-md-9">
-      <!-- Filter and Sort Options -->
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
-          <label for="townFilter" class="form-label"><i class="bi bi-geo-alt"></i> <span data-i18n="filter_town">Filter by Town</span></label>
-          <select class="form-select" id="townFilter">
-            <option value="" data-i18n="filter_all_towns">All Towns</option>
-            <option th:each="town : ${towns}" th:value="${town.id}" th:text="${town.name}"></option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4">
-          <label for="genderFilter" class="form-label"><i class="bi bi-person"></i> <span data-i18n="filter_gender">Filter by Gender</span></label>
-          <select class="form-select" id="genderFilter">
-            <option value="" data-i18n="filter_all_genders">All Genders</option>
-            <option value="Male" data-i18n="filter_male">Male</option>
-            <option value="Female" data-i18n="filter_female">Female</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4">
-          <label for="sortOption" class="form-label"><i class="bi bi-sort-down"></i> <span data-i18n="sort_by">Sort By</span></label>
-          <select class="form-select" id="sortOption">
-            <option value="date" data-i18n="sort_newest">Date (Newest First)</option>
-            <option value="wage" data-i18n="sort_wage">Wage (High to Low)</option>
-          </select>
-        </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button class="btn btn-primary" onclick="applyFilters()"><i class="bi bi-funnel"></i> <span data-i18n="apply_filters">Apply Filters</span></button>
+      
+      <div class="card action-banner text-white mb-4 shadow-sm">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4">
+          <div class="mb-3 mb-md-0">
+            <h4 class="fw-bold mb-1"><i class="bi bi-megaphone-fill me-2"></i> <span data-i18n="ready_to_work">Ready to work?</span></h4>
+            <p class="mb-0 text-light opacity-75"><span data-i18n="post_avail_desc">Post your availability so farmers in your town can contact you directly.</span></p>
+          </div>
+          <a href="/post-availability" class="btn btn-light btn-lg text-orange fw-bold px-4 shadow-sm" style="color: #ea580c;"><span data-i18n="post_avail_btn">➕ Post Availability</span></a>
         </div>
       </div>
-      <h3 class="section-title"><i class="bi bi-briefcase-fill"></i> <span data-i18n="available_jobs">Available Jobs</span></h3>
-      <div id="all-section" class="section">
-        <h3>All Posts</h3>
-        <div th:each="job : ${jobs}" th:if="${job.town != null}" class="card mb-3 job-card" th:data-town="${job.town.id}" th:data-date="${#temporals.format(job.createdAt, 'yyyy-MM-dd')}" th:data-wage="${job.wage != null ? job.wage : 0}" th:data-job-id="${job.id}">
-          <div class="card-body">
-            <h5 th:text="${job.workType}">Job</h5>
-            <p th:text="${job.description}"></p>
-            <p>Wage: ₹<span th:text="${job.wage != null ? job.wage : 'Not specified'}"></span></p>
-            <p>Workers needed: <span th:text="${job.workersNeeded}"></span></p>
-            <p th:if="${job.skillsRequired}">Skills: <span th:text="${job.skillsRequired}"></span></p>
-            <p th:if="${job.preferredGender}">Preferred Gender: <span th:text="${job.preferredGender}"></span></p>
-            <p>From: <span th:text="${#temporals.format(job.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${job.endDate != null}" th:text="'To ' + ${#temporals.format(job.endDate, 'd MMM yyyy h:mm a')}"></span></p>
-            <p>Town: <span th:text="${job.town.name}"></span></p>
-            <p>Contact: <span th:text="${job.farmer.mobile}"></span></p>
-            <p>Interests Received: <span th:text="${job.workersResponded}" class="interests-count"></span></p>
-                <button class="btn btn-sm"
-                  th:attr="data-job-id=${job.id},data-user-id=${user.id},data-interested=${respondedJobIds.contains(job.id)}"
-                  th:text="${respondedJobIds.contains(job.id)} ? 'Yes Interested' : 'Interested ???'"
-                  th:classappend="${respondedJobIds.contains(job.id)} ? ' btn-secondary' : ' btn-success'"
-                  onclick="toggleInterest(this)">
-                </button>
-            <span class="badge bg-secondary">Farmer Post</span>
+
+      <div class="card shadow-sm border-0 mb-4" id="filters-row">
+        <div class="card-body row g-3">
+          <div class="col-12 col-md-4">
+            <label for="townFilter" class="form-label text-muted small fw-bold text-uppercase"><i class="bi bi-geo-alt"></i> <span data-i18n="filter_town">Town</span></label>
+            <select class="form-select" id="townFilter">
+              <option value="" data-i18n="filter_all_towns">All Towns</option>
+              <option th:each="town : ${towns}" th:value="${town.id}" th:text="${town.name}"></option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label for="genderFilter" class="form-label text-muted small fw-bold text-uppercase"><i class="bi bi-person"></i> <span data-i18n="filter_gender">Gender</span></label>
+            <select class="form-select" id="genderFilter">
+              <option value="" data-i18n="filter_all_genders">All Genders</option>
+              <option value="Male" data-i18n="filter_male">Male</option>
+              <option value="Female" data-i18n="filter_female">Female</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label for="sortOption" class="form-label text-muted small fw-bold text-uppercase"><i class="bi bi-sort-down"></i> <span data-i18n="sort_by">Sort By</span></label>
+            <select class="form-select" id="sortOption" onchange="applyFilters()">
+              <option value="date" data-i18n="sort_newest">Newest First</option>
+              <option value="wage" data-i18n="sort_wage">Wage (High to Low)</option>
+            </select>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button class="btn btn-success px-4" onclick="applyFilters()"><i class="bi bi-funnel-fill"></i> <span data-i18n="apply_filters">Apply Filters</span></button>
           </div>
         </div>
-        <div th:each="availability : ${availabilities}" th:if="${availability.worker != null and availability.worker.town != null}" class="card mb-3 availability-card" th:data-town="${availability.worker.town.id}" th:data-gender="${availability.worker.gender}" th:data-date="${#temporals.format(availability.createdAt, 'yyyy-MM-dd')}">
-          <div class="card-body">
-            <h5><span data-i18n="worker_name">Worker Name</span>: <span th:text="${availability.worker.name}"></span></h5>
-            <p>Skills: <span th:text="${availability.skills}"></span></p>
-            <p>Availability: <span th:text="${availability.availability}"></span></p>
-            <p>Expected Wage: ₹<span th:text="${availability.wage != null ? availability.wage : 'Not specified'}"></span></p>
-            <p>From: <span th:text="${#temporals.format(availability.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${availability.endDate != null}" th:text="'To ' + ${#temporals.format(availability.endDate, 'd MMM yyyy h:mm a')}"></span></p>
-            <p>Town: <span th:text="${availability.worker.town.name}"></span></p>
-            <p>Contact: <span th:text="${availability.worker.mobile}"></span></p>
-            <span class="badge bg-success">Worker Post</span>
-            <div class="mt-2">
-              <form th:action="@{/delete-availability}" method="post" style="display:inline;" onsubmit="return confirm('Delete this availability post?')">
-                <input type="hidden" name="id" th:value="${availability.id}">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
+      </div>
+
+      <div class="row g-4" id="main-content-row">
+        
+        <div class="col-12 col-lg-6" id="jobs-column">
+          <h4 class="mb-3 fw-bold text-success border-bottom pb-2"><i class="bi bi-briefcase"></i> <span data-i18n="available_farm_jobs">Available Farm Jobs</span></h4>
+          
+          <div th:if="${#lists.isEmpty(jobs)}" class="empty-state text-center p-5 mb-4">
+            <i class="bi bi-search display-4 text-muted mb-3"></i>
+            <h5 class="text-muted"><span data-i18n="no_jobs_found">No jobs found</span></h5>
+            <p class="text-muted small"><span data-i18n="no_jobs_found_desc">There are currently no open jobs matching your criteria.</span></p>
+          </div>
+
+          <div id="jobs-container">
+            <div th:each="job : ${jobs}" th:if="${job.town != null}" class="card shadow-sm border-0 mb-3 job-card" th:data-town="${job.town.id}" th:data-date="${#temporals.format(job.createdAt, 'yyyy-MM-dd')}" th:data-wage="${job.wage != null ? job.wage : 0}" th:data-job-id="${job.id}">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h5 class="fw-bold mb-0 text-dark" th:text="${job.workType}">Job</h5>
+                  <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt-fill text-danger"></i> <span th:text="${job.town.name}"></span></span>
+                </div>
+                <p class="text-muted mb-3" th:text="${job.description}"></p>
+                <div class="row g-2 mb-3 small">
+                  <div class="col-6"><i class="bi bi-cash text-success"></i> <span data-i18n="wage_label">Wage</span>: ₹<span th:text="${job.wage != null ? job.wage : 'Not specified'}"></span></div>
+                  <div class="col-6"><i class="bi bi-people-fill text-primary"></i> <span data-i18n="needed_label">Needed</span>: <span th:text="${job.workersNeeded}"></span></div>
+                  <div class="col-6" th:if="${job.skillsRequired}"><i class="bi bi-star-fill text-warning"></i> <span th:text="${job.skillsRequired}"></span></div>
+                  <div class="col-12 text-muted"><i class="bi bi-calendar-check"></i> <span data-i18n="from">From</span>: <span th:text="${#temporals.format(job.startDate, 'd MMM yyyy h:mm a')}"></span></div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="small"><strong><span data-i18n="contact_label">Contact</span>:</strong> <span th:text="${job.farmer.mobile}"></span></span>
+                  <span class="badge bg-info text-dark rounded-pill"><span th:text="${job.workersResponded}" class="interests-count"></span> <span data-i18n="responses_label">Applied</span></span>
+                </div>
+                
+                <button class="btn btn-sm w-100 fw-bold"
+                  th:attr="data-job-id=${job.id},data-user-id=${user.id},data-interested=${respondedJobIds.contains(job.id)}"
+                  th:text="${respondedJobIds.contains(job.id)} ? '✓ Applied (Cancel)' : 'Apply for Job'"
+                  th:classappend="${respondedJobIds.contains(job.id)} ? ' btn-outline-secondary' : ' btn-success'"
+                  onclick="toggleInterest(this)">
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div id="farmer-section" class="section" style="display: none;">
-        <h3>Farmer Posts</h3>
-        <div th:each="job : ${jobs}" th:if="${job.town != null}" class="card mb-3 job-card" th:data-town="${job.town.id}" th:data-date="${#temporals.format(job.createdAt, 'yyyy-MM-dd')}" th:data-wage="${job.wage != null ? job.wage : 0}" th:data-job-id="${job.id}">
-          <div class="card-body">
-            <h5 th:text="${job.workType}">Job</h5>
-            <p th:text="${job.description}"></p>
-            <p>Wage: ₹<span th:text="${job.wage != null ? job.wage : 'Not specified'}"></span></p>
-            <p>Workers needed: <span th:text="${job.workersNeeded}"></span></p>
-            <p th:if="${job.skillsRequired}">Skills: <span th:text="${job.skillsRequired}"></span></p>
-            <p th:if="${job.preferredGender}">Preferred Gender: <span th:text="${job.preferredGender}"></span></p>
-            <p>From: <span th:text="${#temporals.format(job.startDate, 'd MMM yyyy h:mm a')}"></span> <span th:if="${job.endDate != null}" th:text="'To ' + ${#temporals.format(job.endDate, 'd MMM yyyy h:mm a')}"></span></p>
-            <p>Town: <span th:text="${job.town.name}"></span></p>
-            <p>Contact: <span th:text="${job.farmer.mobile}"></span></p>
-            <p>Interests Received: <span th:text="${job.workersResponded}" class="interests-count"></span></p>
-                <button class="btn btn-sm"
-                  th:attr="data-job-id=${job.id},data-user-id=${user.id},data-interested=${respondedJobIds.contains(job.id)}"
-                  th:text="${respondedJobIds.contains(job.id)} ? 'Yes Interested' : 'Interested ???'"
-                  th:classappend="${respondedJobIds.contains(job.id)} ? ' btn-secondary' : ' btn-success'"
-                  onclick="toggleInterest(this)">
-                </button>
-            <span class="badge bg-secondary">Farmer Post</span>
+
+        <div class="col-12 col-lg-6" id="workers-column">
+          <h4 class="mb-3 fw-bold text-secondary border-bottom pb-2"><i class="bi bi-person-lines-fill"></i> <span data-i18n="other_worker_posts">Other Worker Posts</span></h4>
+          <div id="availability-container">
+            <div th:each="availability : ${availabilities}" th:if="${availability.worker != null and availability.worker.town != null}" class="card shadow-sm border-0 mb-3 availability-card" th:data-town="${availability.worker.town.id}" th:data-gender="${availability.worker.gender}" th:data-date="${#temporals.format(availability.createdAt, 'yyyy-MM-dd')}">
+              <div class="card-body">
+                <h5 class="fw-bold mb-2 text-primary"><span data-i18n="worker_name">Worker</span>: <span th:text="${availability.worker.name}"></span></h5>
+                <p class="mb-1 text-muted"><i class="bi bi-tools"></i> <span data-i18n="skills_label">Skills</span>: <span class="text-dark" th:text="${availability.skills}"></span></p>
+                <p class="mb-1 text-muted"><i class="bi bi-cash"></i> <span data-i18n="expected_wage">Expected Wage</span>: ₹<span class="text-dark" th:text="${availability.wage != null ? availability.wage : 'Not specified'}"></span></p>
+                <p class="mb-3 text-muted"><i class="bi bi-geo-alt"></i> <span data-i18n="filter_town">Town</span>: <span class="text-dark" th:text="${availability.worker.town.name}"></span></p>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                  <span class="badge bg-light text-secondary border" data-i18n="worker_post_badge">Worker Post</span>
+                  <form th:action="@{/delete-availability}" method="post" style="display:inline;" onsubmit="return confirm('Delete this availability post?')">
+                    <input type="hidden" name="id" th:value="${availability.id}">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> <span data-i18n="delete_post_btn">Delete Post</span></button>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
-      <div id="worker-section" class="section" style="display: none;">
-        <h3>Worker Posts</h3>
-        <div th:each="availability : ${availabilities}" th:if="${availability.worker != null and availability.worker.town != null}" class="card mb-3 availability-card" th:data-town="${availability.worker.town.id}" th:data-gender="${availability.worker.gender}" th:data-date="${#temporals.format(availability.createdAt, 'yyyy-MM-dd')}">
-          <div class="card-body">
-            <h5><span data-i18n="worker_name">Worker Name</span>: <span th:text="${availability.worker.name}"></span></h5>
-            <p>Skills: <span th:text="${availability.skills}"></span></p>
-            <p>Availability: <span th:text="${availability.availability}"></span></p>
-            <p>Expected Wage: ₹<span th:text="${availability.wage != null ? availability.wage : 'Not specified'}"></span></p>
-            <p>From: <span th:text="${#temporals.format(availability.startDate, 'yyyy-MM-dd HH:mm')}"></span> <span th:if="${availability.endDate != null}" th:text="'To ' + ${#temporals.format(availability.endDate, 'yyyy-MM-dd HH:mm')}"></span></p>
-            <p>Town: <span th:text="${availability.worker.town.name}"></span></p>
-            <p>Contact: <span th:text="${availability.worker.mobile}"></span></p>
-            <button class="btn btn-success btn-sm" th:attr="data-availability-id=${availability.id}" onclick="expressAvailabilityInterest(this)">I'm Interested</button>
-            <span class="badge bg-success">Worker Post</span>
+
+      <div class="row mt-2" id="history-row" style="display: none;">
+        <div class="col-12">
+          <h4 class="mb-4 fw-bold text-primary border-bottom pb-2"><i class="bi bi-clock-history"></i> <span data-i18n="my_job_applications">My Job Applications</span></h4>
+          
+          <div th:if="${#lists.isEmpty(myResponses)}" class="empty-state text-center p-5 mb-4">
+            <i class="bi bi-clipboard-x display-4 text-muted mb-3"></i>
+            <h5 class="text-muted"><span data-i18n="no_applications_yet">No applications yet</span></h5>
+            <p class="text-muted small"><span data-i18n="no_applications_desc">When you apply for a job, it will appear here so you can track it.</span></p>
+          </div>
+
+          <div th:each="response : ${myResponses}" class="card shadow-sm border-0 mb-3 border-start border-4 border-primary">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark" th:text="${response.job.workType}">Job</h5>
+                <span th:if="${response.job.isFull}" class="badge bg-secondary px-3 py-2" data-i18n="job_closed">Job Closed</span>
+                <span th:unless="${response.job.isFull}" class="badge bg-success px-3 py-2" data-i18n="active">Active</span>
+              </div>
+              <p class="text-muted mb-3" th:text="${response.job.description}"></p>
+              
+              <div class="bg-light p-3 rounded mb-2 d-flex justify-content-between">
+                <div>
+                  <small class="text-muted d-block" data-i18n="applied_on">Applied on</small>
+                  <strong><span th:text="${#temporals.format(response.respondedAt, 'd MMM yyyy h:mm a')}"></span></strong>
+                </div>
+                <div class="text-end">
+                  <small class="text-muted d-block" data-i18n="farmer_contact">Farmer Contact</small>
+                  <strong><i class="bi bi-telephone-fill text-success"></i> <span th:text="${response.job.farmer.mobile}"></span></strong>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -157,88 +199,96 @@
   </div>
 </div>
 
-<div class="row mt-4">
-  <div class="col-12">
-    <h3>My Job Applications History</h3>
-    <div th:each="response : ${myResponses}" class="card mb-3">
-      <div class="card-body">
-        <h5 th:text="${response.job.workType}">Job</h5>
-        <p th:text="${response.job.description}"></p>
-        <p>Applied on: <span th:text="${#temporals.format(response.respondedAt, 'd MMM yyyy h:mm a')}"></span></p>
-        <p>Status: <span th:if="${response.job.isFull}" class="text-success">Job Full</span><span th:unless="${response.job.isFull}" class="text-warning">Open</span></p>
-        <p>Contact: <span th:text="${response.job.farmer.mobile}"></span></p>
+<div class="modal fade" id="complaintModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-shield-exclamation me-2"></i> <span data-i18n="report_issue_title">Report an Issue</span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <form th:action="@{/submit-complaint}" method="post">
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-4"><span data-i18n="report_issue_desc">If you faced an issue with another user, please report it here. Our Admin will investigate immediately.</span></p>
+          <div class="mb-3">
+            <label for="subject" class="form-label fw-bold text-dark" data-i18n="issue_type_label">Issue Type</label>
+            <select class="form-select bg-light border-0" id="subject" name="subject" required>
+              <option value="" data-i18n="select_category">Select a category...</option>
+              <option value="Payment Issue" data-i18n="payment_issue">Payment Issue</option>
+              <option value="Fake Profile" data-i18n="fake_profile">Fake Profile / Scam</option>
+              <option value="Bad Behavior" data-i18n="bad_behavior">Bad Behavior / Harassment</option>
+              <option value="Other" data-i18n="other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label fw-bold text-dark" data-i18n="details_label">Details</label>
+            <textarea class="form-control bg-light border-0" id="description" name="description" rows="4" data-i18n-placeholder="details_placeholder" placeholder="Please provide the name or mobile number of the user, and describe exactly what happened..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 bg-light">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" data-i18n="cancel_btn">Cancel</button>
+          <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" data-i18n="submit_complaint_btn">Submit Complaint</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function showSection(section) {
-  // Hide all sections
-  document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
-  // Show selected section
-  document.getElementById(section + '-section').style.display = 'block';
-  // Update active button
-  document.querySelectorAll('.list-group-item').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
-}
+function showSection(section, buttonElement) {
+  document.querySelectorAll('.sidebar .list-group-item').forEach(btn => btn.classList.remove('active', 'fw-bold'));
+  buttonElement.classList.add('active', 'fw-bold');
 
+  const jobsCol = document.getElementById('jobs-column');
+  const workersCol = document.getElementById('workers-column');
+  const historyRow = document.getElementById('history-row');
+  const filtersRow = document.getElementById('filters-row');
+
+  if (section === 'all') {
+    jobsCol.style.display = 'block'; jobsCol.className = 'col-12 col-lg-6';
+    workersCol.style.display = 'block'; workersCol.className = 'col-12 col-lg-6';
+    historyRow.style.display = 'none'; filtersRow.style.display = 'flex';
+  } else if (section === 'worker') {
+    jobsCol.style.display = 'none';
+    workersCol.style.display = 'block'; workersCol.className = 'col-12';
+    historyRow.style.display = 'none'; filtersRow.style.display = 'flex';
+  } else if (section === 'farmer') {
+    jobsCol.style.display = 'none'; workersCol.style.display = 'none';
+    historyRow.style.display = 'block'; filtersRow.style.display = 'none';
+  }
+}
 function applyFilters() {
   const townFilter = document.getElementById('townFilter').value;
   const genderFilter = document.getElementById('genderFilter').value;
   const sortOption = document.getElementById('sortOption').value;
 
-  // Get visible section
-  const visibleSection = document.querySelector('.section:not([style*="display: none"])');
-  if (!visibleSection) return;
+  const jobCards = Array.from(document.querySelectorAll('.job-card'));
+  jobCards.forEach(card => {
+    const town = card.dataset.town;
+    const townMatch = townFilter === '' || town === townFilter;
+    card.style.display = townMatch ? 'block' : 'none';
+  });
 
-  const sectionId = visibleSection.id;
-
-  if (sectionId === 'all-section') {
-    // Filter jobs
-    const jobCards = Array.from(visibleSection.querySelectorAll('.job-card'));
-    jobCards.forEach(card => {
-      const town = card.dataset.town;
-      const townMatch = townFilter === '' || town === townFilter;
-      card.style.display = townMatch ? 'block' : 'none';
-    });
-
-    // Filter availabilities
-    const availabilityCards = Array.from(visibleSection.querySelectorAll('.availability-card'));
-    availabilityCards.forEach(card => {
-      const town = card.dataset.town;
-      const gender = card.dataset.gender;
-      const townMatch = townFilter === '' || town === townFilter;
-      const genderMatch = genderFilter === '' || gender === genderFilter;
-      card.style.display = townMatch && genderMatch ? 'block' : 'none';
-    });
-
-    // Sort jobs
-    if (sortOption === 'wage') {
-      jobCards.sort((a, b) => Number.parseFloat(b.dataset.wage) - Number.parseFloat(a.dataset.wage));
-    } else {
-      jobCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
-    }
-    jobCards.forEach(card => visibleSection.appendChild(card));
-
-    // Sort availabilities
-    availabilityCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
-    availabilityCards.forEach(card => visibleSection.appendChild(card));
-  } else if (sectionId === 'farmer-section') {
-    // Filter and sort availabilities
-    const availabilityCards = Array.from(visibleSection.querySelectorAll('.availability-card'));
-    availabilityCards.forEach(card => {
-      const town = card.dataset.town;
-      const gender = card.dataset.gender;
-      const townMatch = townFilter === '' || town === townFilter;
-      const genderMatch = genderFilter === '' || gender === genderFilter;
-      card.style.display = townMatch && genderMatch ? 'block' : 'none';
-    });
-
-    // Sort availabilities
-    availabilityCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
-    availabilityCards.forEach(card => visibleSection.appendChild(card));
+  if (sortOption === 'wage') {
+    jobCards.sort((a, b) => (Number.parseFloat(b.dataset.wage) || 0) - (Number.parseFloat(a.dataset.wage) || 0));
+  } else {
+    jobCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
   }
+  const jobContainer = document.getElementById('jobs-container');
+  jobCards.forEach(card => jobContainer.appendChild(card));
+
+  const availabilityCards = Array.from(document.querySelectorAll('.availability-card'));
+  availabilityCards.forEach(card => {
+    const town = card.dataset.town;
+    const gender = card.dataset.gender;
+    const townMatch = townFilter === '' || town === townFilter;
+    const genderMatch = genderFilter === '' || gender === genderFilter;
+    card.style.display = (townMatch && genderMatch) ? 'block' : 'none';
+  });
+
+  availabilityCards.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
+  const availabilityContainer = document.getElementById('availability-container');
+  availabilityCards.forEach(card => availabilityContainer.appendChild(card));
 }
 
 function toggleInterest(button) {
@@ -255,9 +305,9 @@ function toggleInterest(button) {
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
 
   if (isInterested) {
-    button.textContent = "Interested ???";
+    button.textContent = "Apply for Job";
     button.dataset.interested = "false";
-    button.classList.remove("btn-secondary");
+    button.classList.remove("btn-outline-secondary");
     button.classList.add("btn-success");
 
     fetch(`/api/jobs/${jobId}/respond?workerId=${userId}`, {
@@ -282,16 +332,16 @@ function toggleInterest(button) {
     })
     .catch(error => {
       alert('Error: ' + error.message);
-      button.textContent = "Yes Interested";
+      button.textContent = "✓ Applied (Cancel)";
       button.dataset.interested = "true";
       button.classList.remove("btn-success");
-      button.classList.add("btn-secondary");
+      button.classList.add("btn-outline-secondary");
     });
   } else {
-    button.textContent = "Yes Interested";
+    button.textContent = "✓ Applied (Cancel)";
     button.dataset.interested = "true";
     button.classList.remove("btn-success");
-    button.classList.add("btn-secondary");
+    button.classList.add("btn-outline-secondary");
 
     fetch(`/api/jobs/${jobId}/respond?workerId=${userId}`, {
       method: 'POST',
@@ -315,22 +365,14 @@ function toggleInterest(button) {
     })
     .catch(error => {
       alert('Error: ' + error.message);
-      button.textContent = "Interested ???";
+      button.textContent = "Apply for Job";
       button.dataset.interested = "false";
-      button.classList.remove("btn-secondary");
+      button.classList.remove("btn-outline-secondary");
       button.classList.add("btn-success");
     });
   }
 }
-
-function expressAvailabilityInterest(button) {
-  alert('You expressed interest in this availability. Contact the poster for more details.');
-  button.textContent = "Yes Interested";
-  button.classList.remove("btn-success");
-  button.classList.add("btn-secondary");
-}
 </script>
 <script src="/translations.js"></script>
-
 </body>
 </html>
