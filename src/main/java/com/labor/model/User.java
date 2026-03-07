@@ -1,6 +1,7 @@
 package com.labor.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -15,12 +16,18 @@ public class User {
     private String role;
     private String gender;
     
-    // NEW FIELD: So the Admin can ban rule-breakers
+    // So the Admin can ban rule-breakers
     private Boolean isBanned = false; 
 
     @ManyToOne
     @JoinColumn(name = "town_id")
     private Town town;
+
+    // --- NEW SUBSCRIPTION FIELDS ---
+    @Column(columnDefinition = "varchar(255) default 'FREE'")
+    private String subscriptionPlan = "FREE"; // Default is FREE
+
+    private LocalDateTime subscriptionEndDate;
 
     // Existing Getters and setters
     public Integer getId() { return id; }
@@ -38,7 +45,21 @@ public class User {
     public Town getTown() { return town; }
     public void setTown(Town town) { this.town = town; }
     
-    // NEW Getter and Setter for the Ban feature
+    // Getter and Setter for the Ban feature
     public Boolean getIsBanned() { return isBanned; }
     public void setIsBanned(Boolean isBanned) { this.isBanned = isBanned; }
+
+    // --- NEW GETTERS & SETTERS FOR SUBSCRIPTION ---
+    public String getSubscriptionPlan() { return subscriptionPlan; }
+    public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
+
+    public LocalDateTime getSubscriptionEndDate() { return subscriptionEndDate; }
+    public void setSubscriptionEndDate(LocalDateTime subscriptionEndDate) { this.subscriptionEndDate = subscriptionEndDate; }
+    
+    // Helper method to easily check if subscription is valid
+    public boolean isPremium() {
+        return "PREMIUM".equals(this.subscriptionPlan) && 
+               this.subscriptionEndDate != null && 
+               this.subscriptionEndDate.isAfter(LocalDateTime.now());
+    }
 }

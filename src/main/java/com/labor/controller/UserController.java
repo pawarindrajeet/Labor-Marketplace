@@ -60,7 +60,6 @@ public class UserController {
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
-        // CHANGED: Fetching distinct states instead of all towns
         List<String> states = townRepository.findDistinctStates();
         model.addAttribute("states", states);
         return "register";
@@ -107,7 +106,6 @@ public class UserController {
         LocalDateTime now = LocalDateTime.now();
         model.addAttribute("currentTime", now); 
         
-        // Note: Keeping all towns here for the filter dropdowns on the dashboard
         List<Town> towns = townRepository.findAll();
         model.addAttribute("towns", towns);
 
@@ -139,7 +137,6 @@ public class UserController {
             return "farmer_dashboard";
             
         } else {
-            // WORKER LOGIC
             List<JobPost> activeJobs = jobPostRepository.findByIsFullFalseOrderByCreatedAtDesc().stream()
                 .filter(job -> job.getTown() != null)
                 .filter(job -> job.getEndDate() == null || job.getEndDate().isAfter(now))
@@ -186,7 +183,6 @@ public class UserController {
         model.addAttribute("user", user);
         model.addAttribute("myComplaints", myComplaints);
         
-        // CHANGED: Fetching distinct states instead of all towns
         List<String> states = townRepository.findDistinctStates();
         model.addAttribute("states", states);
         
@@ -222,6 +218,28 @@ public class UserController {
         return "redirect:/profile?updated=true";
     }
 
+    // NEW: Change Password Endpoint
+    @PostMapping("/profile/change-password")
+    @Transactional
+    public String changePassword(@RequestParam String currentPassword,
+                                 @RequestParam String newPassword,
+                                 @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        if (user == null) return REDIRECT_LOGIN;
+
+        // Verify the old password matches the database
+        if (passwordEncoder.matches(currentPassword, user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+            return "redirect:/profile?passwordUpdated=true";
+        } else {
+            // Send back an error if old password doesn't match
+            return "redirect:/profile?error=wrongPassword";
+        }
+    }
+
     @GetMapping("/jobs/{jobId}/view-applicants")
     public String viewApplicants(@PathVariable Integer jobId, Model model, 
                                  @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
@@ -237,6 +255,27 @@ public class UserController {
         return "view_applicants";
     }
 
+    @GetMapping("/post-availability")
+    public String showPostAvailabilityForm(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        if (user == null || !ROLE_WORKER.equals(user.getRole())) return REDIRECT_DASHBOARD;
+        
+        if (!user.isPremium()) {
+            long activeAvails = workerAvailabilityRepository.findAll().stream()
+                .filter(wa -> wa.getWorker().getId().equals(user.getId()))
+                .count();
+            if (activeAvails >= 1) {
+                return "redirect:/pricing"; 
+            }
+        }
+
+        List<String> states = townRepository.findDistinctStates();
+        model.addAttribute("states", states);
+        
+        return "post_availability";
+    }
+
     @PostMapping("/post-availability")
     @Transactional
     public String postAvailability(@RequestParam String skills, @RequestParam String availability, 
@@ -245,6 +284,15 @@ public class UserController {
         if (userDetails == null) return REDIRECT_LOGIN;
         User worker = userRepository.findByMobile(userDetails.getUsername());
         if (worker == null || Boolean.TRUE.equals(worker.getIsBanned())) return REDIRECT_LOGIN; 
+
+        if (!worker.isPremium()) {
+            long activeAvails = workerAvailabilityRepository.findAll().stream()
+                .filter(wa -> wa.getWorker().getId().equals(worker.getId()))
+                .count();
+            if (activeAvails >= 1) {
+                return "redirect:/pricing"; 
+            }
+        }
 
         WorkerAvailability wa = new WorkerAvailability();
         wa.setWorker(worker);
@@ -258,28 +306,22 @@ public class UserController {
         return REDIRECT_DASHBOARD;
     }
 
-    @GetMapping("/post-availability")
-    public String showPostAvailabilityForm(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
-        if (userDetails == null) return REDIRECT_LOGIN;
-        User user = userRepository.findByMobile(userDetails.getUsername());
-        if (user == null || !ROLE_WORKER.equals(user.getRole())) return REDIRECT_DASHBOARD;
-        
-        // CHANGED: Fetching distinct states instead of all towns
-        List<String> states = townRepository.findDistinctStates();
-        model.addAttribute("states", states);
-        
-        return "post_availability";
-    }
-
     @GetMapping("/post-job")
     public String showPostJobForm(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
         if (userDetails == null) return REDIRECT_LOGIN;
         User user = userRepository.findByMobile(userDetails.getUsername());
         
-        // Security Check: Only Farmers can see the Post Job form
         if (user == null || !ROLE_FARMER.equals(user.getRole())) return REDIRECT_DASHBOARD;
         
-        // CHANGED: Fetching distinct states instead of all towns
+        if (!user.isPremium()) {
+            long activeJobs = jobPostRepository.findAll().stream()
+                .filter(j -> j.getFarmer().getId().equals(user.getId()) && !Boolean.TRUE.equals(j.getIsFull()))
+                .count();
+            if (activeJobs >= 1) {
+                return "redirect:/pricing"; 
+            }
+        }
+
         List<String> states = townRepository.findDistinctStates();
         model.addAttribute("states", states);
         return "post_job";
@@ -300,6 +342,15 @@ public class UserController {
         if (userDetails == null) return REDIRECT_LOGIN;
         User farmer = userRepository.findByMobile(userDetails.getUsername());
         if (farmer == null || !ROLE_FARMER.equals(farmer.getRole()) || Boolean.TRUE.equals(farmer.getIsBanned())) return REDIRECT_DASHBOARD; 
+
+        if (!farmer.isPremium()) {
+            long activeJobs = jobPostRepository.findAll().stream()
+                .filter(j -> j.getFarmer().getId().equals(farmer.getId()) && !Boolean.TRUE.equals(j.getIsFull()))
+                .count();
+            if (activeJobs >= 1) {
+                return "redirect:/pricing"; 
+            }
+        }
 
         JobPost job = new JobPost();
         job.setFarmer(farmer);

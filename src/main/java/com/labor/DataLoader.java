@@ -1,9 +1,12 @@
 package com.labor;
 
 import com.labor.model.Town;
+import com.labor.model.User;
 import com.labor.repository.TownRepository;
+import com.labor.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,15 +17,35 @@ public class DataLoader implements CommandLineRunner {
     @Autowired
     private TownRepository townRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public void run(String... args) throws Exception {
         
-        // 1. UPGRADE EXISTING DATA: Find all old villages missing a State/District and fix them!
+        // 1. CREATE ADMIN ACCOUNT IF IT IS MISSING
+        String adminMobile = "9999999999";
+        if (userRepository.findByMobile(adminMobile) == null) {
+            User admin = new User();
+            admin.setName("Super Admin");
+            admin.setMobile(adminMobile);
+            admin.setPassword(passwordEncoder.encode("admin123")); // Admin password
+            admin.setRole("Admin");
+            admin.setGender("Male");
+            admin.setIsBanned(false);
+            admin.setSubscriptionPlan("PREMIUM");
+            userRepository.save(admin);
+            System.out.println("✅ ADMIN ACCOUNT CREATED! Login -> Mobile: 9999999999 | Password: admin123");
+        }
+
+        // 2. UPGRADE EXISTING DATA
         List<Town> allTowns = townRepository.findAll();
         boolean dataFixed = false;
         
         for (Town town : allTowns) {
-            // If the state or district is missing, fill it in so it appears in the new dropdowns
             if (town.getState() == null || town.getDistrict() == null || town.getState().isEmpty()) {
                 town.setState("Maharashtra");
                 town.setDistrict("Sangli"); 
@@ -35,7 +58,7 @@ public class DataLoader implements CommandLineRunner {
             System.out.println("✅ SUCCESSFULLY UPDATED OLD VILLAGES WITH STATE AND DISTRICT!");
         }
 
-        // 2. ADD DEFAULT DATA ONLY IF DATABASE IS COMPLETELY EMPTY
+        // 3. ADD DEFAULT DATA ONLY IF DATABASE IS COMPLETELY EMPTY
         if (townRepository.count() == 0) {
             // Maharashtra - Sangli District
             townRepository.save(new Town("Agar", "Sangli", "Maharashtra"));

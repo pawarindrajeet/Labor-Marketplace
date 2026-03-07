@@ -21,16 +21,28 @@
     </div>
 </nav>
 
-<div class="container py-2">
+<div class="container py-2 mb-5">
+    
     <div th:if="${param.updated}" class="alert alert-success shadow-sm border-0 mb-4 rounded-3 alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i> <strong>Success!</strong> Your profile details have been updated.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
+    <div th:if="${param.passwordUpdated}" class="alert alert-success shadow-sm border-0 mb-4 rounded-3 alert-dismissible fade show" role="alert">
+        <i class="bi bi-shield-lock-fill me-2"></i> <strong>Secure!</strong> Your password has been successfully changed.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div th:if="${param.error != null and param.error[0] == 'wrongPassword'}" class="alert alert-danger shadow-sm border-0 mb-4 rounded-3 alert-dismissible fade show" role="alert">
+        <i class="bi bi-x-circle-fill me-2"></i> <strong>Error!</strong> The current password you entered is incorrect.
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 
     <div class="row g-4">
         
         <div class="col-12 col-lg-5">
-            <div class="card shadow-sm border-0 rounded-4 h-100">
+            
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-header bg-success text-white border-bottom py-3 rounded-top-4">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-person-lines-fill me-2"></i> Update My Details</h5>
                 </div>
@@ -70,14 +82,38 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-muted small text-uppercase">Village/Town</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
-                                <select name="townId" class="form-select border-start-0 bg-light" required>
-                                    <option th:each="t : ${towns}" th:value="${t.id}" th:text="${t.name}" th:selected="${user.town != null and user.town.id == t.id}"></option>
+                        <div class="mb-4 p-3 bg-light border rounded">
+                            <label class="form-label fw-bold text-success mb-2"><i class="bi bi-geo-alt-fill"></i> Location Details</label>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-1">State</label>
+                                <select class="form-select form-select-sm" id="stateSelector" onchange="loadDistricts()" required>
+                                    <option value="">1. Select State</option>
+                                    <option th:each="state : ${states}" 
+                                            th:value="${state}" 
+                                            th:text="${state}"
+                                            th:selected="${user.town != null and user.town.state == state}">
+                                    </option>
                                 </select>
                             </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-1">District</label>
+                                <select class="form-select form-select-sm" id="districtSelector" onchange="loadTowns()" required>
+                                    <option value="">2. First Select State</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label small text-muted mb-1">Village</label>
+                                <select class="form-select form-select-sm border-success fw-bold" id="town" name="townId" required>
+                                    <option value="">3. First Select District</option>
+                                </select>
+                            </div>
+                            
+                            <input type="hidden" id="currentUserState" th:value="${user.town != null ? user.town.state : ''}">
+                            <input type="hidden" id="currentUserDistrict" th:value="${user.town != null ? user.town.district : ''}">
+                            <input type="hidden" id="currentUserTownId" th:value="${user.town != null ? user.town.id : ''}">
                         </div>
 
                         <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill py-2 shadow-sm">
@@ -86,6 +122,37 @@
                     </form>
                 </div>
             </div>
+
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-danger text-white border-bottom py-3 rounded-top-4">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-key-fill me-2"></i> Change Password</h5>
+                </div>
+                <div class="card-body p-4 bg-white rounded-bottom-4">
+                    <form th:action="@{/profile/change-password}" method="post" onsubmit="return validatePasswords()">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Current Password</label>
+                            <input type="password" name="currentPassword" class="form-control bg-light" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small text-uppercase">New Password</label>
+                            <input type="password" id="newPassword" name="newPassword" class="form-control bg-light" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Confirm New Password</label>
+                            <input type="password" id="confirmPassword" class="form-control bg-light" required>
+                            <small id="passwordError" class="text-danger d-none fw-bold"><i class="bi bi-exclamation-circle"></i> Passwords do not match!</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-outline-danger w-100 fw-bold rounded-pill py-2">
+                            Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+
         </div>
 
         <div class="col-12 col-lg-7">
@@ -134,5 +201,102 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function validatePasswords() {
+        const newPass = document.getElementById('newPassword').value;
+        const confirmPass = document.getElementById('confirmPassword').value;
+        const errorMsg = document.getElementById('passwordError');
+        
+        if (newPass !== confirmPass) {
+            errorMsg.classList.remove('d-none');
+            return false; // Prevent the form from submitting
+        } else {
+            errorMsg.classList.add('d-none');
+            return true; // Allow the form to submit
+        }
+    }
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", async function() {
+        const state = document.getElementById("currentUserState").value;
+        const district = document.getElementById("currentUserDistrict").value;
+        const townId = document.getElementById("currentUserTownId").value;
+
+        if (state) {
+            await loadDistricts(state, district);
+        }
+        if (state && district) {
+            await loadTowns(state, district, townId);
+        }
+    });
+
+    async function loadDistricts(preselectState = null, preselectDistrict = null) {
+        const stateSelect = document.getElementById("stateSelector");
+        const districtSelect = document.getElementById("districtSelector");
+        const townSelect = document.getElementById("town");
+        
+        const state = preselectState || stateSelect.value;
+
+        districtSelect.innerHTML = '<option value="">2. Select District</option>';
+        districtSelect.disabled = true;
+        townSelect.innerHTML = '<option value="">3. First Select District</option>';
+        townSelect.disabled = true;
+
+        if (!state) return;
+
+        try {
+            const response = await fetch(`/api/locations/districts?state=${encodeURIComponent(state)}`);
+            const districts = await response.json();
+
+            if (districts.length > 0) {
+                districts.forEach(d => {
+                    let option = document.createElement("option");
+                    option.value = d;
+                    option.textContent = d;
+                    if (d === preselectDistrict) option.selected = true;
+                    districtSelect.appendChild(option);
+                });
+                districtSelect.disabled = false;
+            }
+        } catch (error) {
+            console.error("Error fetching districts:", error);
+        }
+    }
+
+    async function loadTowns(preselectState = null, preselectDistrict = null, preselectTownId = null) {
+        const stateSelect = document.getElementById("stateSelector");
+        const districtSelect = document.getElementById("districtSelector");
+        const townSelect = document.getElementById("town");
+
+        const state = preselectState || stateSelect.value;
+        const district = preselectDistrict || districtSelect.value;
+
+        townSelect.innerHTML = '<option value="">3. Select Village / Town</option>';
+        townSelect.disabled = true;
+
+        if (!state || !district) return;
+
+        try {
+            const response = await fetch(`/api/locations/towns?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`);
+            const towns = await response.json();
+
+            if (towns.length > 0) {
+                towns.forEach(t => {
+                    let option = document.createElement("option");
+                    option.value = t.id;
+                    option.textContent = t.name;
+                    if (t.id == preselectTownId) option.selected = true;
+                    townSelect.appendChild(option);
+                });
+                townSelect.disabled = false;
+            }
+        } catch (error) {
+            console.error("Error fetching villages:", error);
+        }
+    }
+</script>
+
 </body>
 </html>

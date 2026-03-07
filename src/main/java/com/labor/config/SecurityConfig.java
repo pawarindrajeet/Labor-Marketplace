@@ -21,7 +21,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authz -> authz
-            .requestMatchers("/", "/register", "/login", "/custom-theme.css", "/translations.js", "/location.js").permitAll()
+            // CHANGED: Added "/api/locations/**" to the public list!
+            .requestMatchers("/", "/register", "/login", "/custom-theme.css", "/translations.js", "/location.js", "/api/locations/**").permitAll()
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService)
