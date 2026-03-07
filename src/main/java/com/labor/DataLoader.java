@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class DataLoader implements CommandLineRunner {
 
@@ -14,8 +16,27 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        
+        // 1. UPGRADE EXISTING DATA: Find all old villages missing a State/District and fix them!
+        List<Town> allTowns = townRepository.findAll();
+        boolean dataFixed = false;
+        
+        for (Town town : allTowns) {
+            // If the state or district is missing, fill it in so it appears in the new dropdowns
+            if (town.getState() == null || town.getDistrict() == null || town.getState().isEmpty()) {
+                town.setState("Maharashtra");
+                town.setDistrict("Sangli"); 
+                townRepository.save(town);
+                dataFixed = true;
+            }
+        }
+        
+        if (dataFixed) {
+            System.out.println("✅ SUCCESSFULLY UPDATED OLD VILLAGES WITH STATE AND DISTRICT!");
+        }
+
+        // 2. ADD DEFAULT DATA ONLY IF DATABASE IS COMPLETELY EMPTY
         if (townRepository.count() == 0) {
-            
             // Maharashtra - Sangli District
             townRepository.save(new Town("Agar", "Sangli", "Maharashtra"));
             townRepository.save(new Town("Ankali", "Sangli", "Maharashtra"));
@@ -83,7 +104,7 @@ public class DataLoader implements CommandLineRunner {
             townRepository.save(new Town("Ghanand", "Satara", "Maharashtra"));
             townRepository.save(new Town("Ghatnandre", "Satara", "Maharashtra"));
             
-            // Other Maharashtra Villages (Assigned to Sangli for consistency, or adjust as needed)
+            // Other Maharashtra Villages (Assigned to Sangli)
             townRepository.save(new Town("Gheradi", "Sangli", "Maharashtra"));
             townRepository.save(new Town("Gorewadi", "Sangli", "Maharashtra"));
             townRepository.save(new Town("Hingangaon", "Sangli", "Maharashtra"));
