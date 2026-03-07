@@ -4,6 +4,8 @@ import com.labor.model.WorkerAvailability;
 import com.labor.model.JobPost;
 import com.labor.model.User;
 import com.labor.model.Town;
+import com.labor.model.Response;
+import com.labor.model.Complaint;
 import com.labor.repository.WorkerAvailabilityRepository;
 import com.labor.repository.ComplaintRepository;
 import com.labor.repository.JobPostRepository;
@@ -16,6 +18,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,12 +32,11 @@ import java.time.format.DateTimeFormatter;
 @Controller
 public class UserController {
 
-    private static final String TOWNS_ATTRIBUTE = "towns";
     private static final String REDIRECT_LOGIN = "redirect:/login";
     private static final String REDIRECT_DASHBOARD = "redirect:/dashboard";
     private static final String ROLE_FARMER = "Farmer";
     private static final String ROLE_WORKER = "Worker";
-    private static final String ROLE_ADMIN = "Admin"; // NEW: Admin Role
+    private static final String ROLE_ADMIN = "Admin"; 
 
     @Autowired
     private UserRepository userRepository;
@@ -58,8 +60,9 @@ public class UserController {
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
-        List<Town> towns = townRepository.findAll();
-        model.addAttribute(TOWNS_ATTRIBUTE, towns);
+        // CHANGED: Fetching distinct states instead of all towns
+        List<String> states = townRepository.findDistinctStates();
+        model.addAttribute("states", states);
         return "register";
     }
 
@@ -77,7 +80,7 @@ public class UserController {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
         user.setGender(gender);
-        user.setIsBanned(false); // Make sure new users are not banned
+        user.setIsBanned(false); 
         Town town = townRepository.findById(townId).orElseThrow();
         user.setTown(town);
         userRepository.save(user);
@@ -91,43 +94,147 @@ public class UserController {
         User user = userRepository.findByMobile(userDetails.getUsername());
         if (user == null) return REDIRECT_LOGIN;
 
-        // NEW: Check if the user is banned
         if (Boolean.TRUE.equals(user.getIsBanned())) {
             return "redirect:/login?banned=true"; 
         }
 
-        // NEW: Route the Admin to the Admin Controller
         if (ROLE_ADMIN.equals(user.getRole())) {
             return "redirect:/admin/dashboard";
         }
 
         model.addAttribute("user", user);
         
+        LocalDateTime now = LocalDateTime.now();
+        model.addAttribute("currentTime", now); 
+        
+        // Note: Keeping all towns here for the filter dropdowns on the dashboard
+        List<Town> towns = townRepository.findAll();
+        model.addAttribute("towns", towns);
+
         if (ROLE_FARMER.equals(user.getRole())) {
-            List<JobPost> jobs = jobPostRepository.findByIsFullFalseOrderByCreatedAtDesc().stream()
-                .filter(job -> job.getTown() != null).collect(Collectors.toList());
-            List<WorkerAvailability> availabilities = workerAvailabilityRepository.findAllByOrderByCreatedAtDesc().stream()
-                .filter(availability -> availability.getWorker() != null && availability.getWorker().getTown() != null)
+            List<JobPost> activeJobs = jobPostRepository.findByIsFullFalseOrderByCreatedAtDesc().stream()
+                .filter(job -> job.getTown() != null)
+                .filter(job -> job.getEndDate() == null || job.getEndDate().isAfter(now))
                 .collect(Collectors.toList());
-            List<Town> towns = townRepository.findAll();
-            model.addAttribute("jobs", jobs);
-            model.addAttribute("availabilities", availabilities);
-            model.addAttribute(TOWNS_ATTRIBUTE, towns);
+            
+            List<WorkerAvailability> activeAvailabilities = workerAvailabilityRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(availability -> availability.getWorker() != null && availability.getWorker().getTown() != null)
+                .filter(wa -> wa.getEndDate() == null || wa.getEndDate().isAfter(now))
+                .collect(Collectors.toList());
+            
+            List<JobPost> myJobs = jobPostRepository.findAll().stream()
+                .filter(job -> job.getFarmer() != null && job.getFarmer().getId().equals(user.getId()))
+                .sorted((j1, j2) -> {
+                    if (j1.getCreatedAt() == null && j2.getCreatedAt() == null) return 0;
+                    if (j1.getCreatedAt() == null) return 1;
+                    if (j2.getCreatedAt() == null) return -1;
+                    return j2.getCreatedAt().compareTo(j1.getCreatedAt());
+                })
+                .collect(Collectors.toList());
+
+            model.addAttribute("jobs", activeJobs);
+            model.addAttribute("availabilities", activeAvailabilities);
+            model.addAttribute("myJobs", myJobs);
+            
             return "farmer_dashboard";
+            
         } else {
-            List<JobPost> jobs = jobPostRepository.findByIsFullFalseOrderByCreatedAtDesc();
-            List<WorkerAvailability> availabilities = workerAvailabilityRepository.findAllByOrderByCreatedAtDesc();
-            List<Town> towns = townRepository.findAll();
-            List<com.labor.model.Response> myResponses = responseRepository.findByWorkerId(user.getId());
+            // WORKER LOGIC
+            List<JobPost> activeJobs = jobPostRepository.findByIsFullFalseOrderByCreatedAtDesc().stream()
+                .filter(job -> job.getTown() != null)
+                .filter(job -> job.getEndDate() == null || job.getEndDate().isAfter(now))
+                .collect(Collectors.toList());
+            
+            List<WorkerAvailability> activeAvailabilities = workerAvailabilityRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(wa -> wa.getWorker() != null && wa.getWorker().getTown() != null)
+                .filter(wa -> wa.getEndDate() == null || wa.getEndDate().isAfter(now))
+                .collect(Collectors.toList());
+
+            List<Response> myResponses = responseRepository.findByWorkerId(user.getId());
+            
+            long acceptedCount = myResponses.stream()
+                .filter(r -> "Accepted".equals(r.getStatus()))
+                .count();
+            model.addAttribute("notificationCount", acceptedCount);
+
             Set<Integer> respondedJobIds = myResponses.stream()
                 .map(response -> response.getJob().getId()).collect(Collectors.toSet());
-            model.addAttribute("jobs", jobs);
-            model.addAttribute("availabilities", availabilities);
-            model.addAttribute(TOWNS_ATTRIBUTE, towns);
+
+            model.addAttribute("jobs", activeJobs);
+            model.addAttribute("availabilities", activeAvailabilities);
             model.addAttribute("myResponses", myResponses);
             model.addAttribute("respondedJobIds", respondedJobIds);
+            
             return "worker_feed";
         }
+    }
+
+    // --- PROFILE ENDPOINTS ---
+    
+    @GetMapping("/profile")
+    public String showProfile(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        if (user == null || Boolean.TRUE.equals(user.getIsBanned())) return REDIRECT_LOGIN;
+        
+        List<Complaint> myComplaints = complaintRepository.findAll().stream()
+                .filter(c -> c.getRaisedBy() != null && c.getRaisedBy().getId().equals(user.getId()))
+                .sorted((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt()))
+                .collect(Collectors.toList());
+
+        model.addAttribute("user", user);
+        model.addAttribute("myComplaints", myComplaints);
+        
+        // CHANGED: Fetching distinct states instead of all towns
+        List<String> states = townRepository.findDistinctStates();
+        model.addAttribute("states", states);
+        
+        return "profile";
+    }
+
+    @PostMapping("/profile/update")
+    @Transactional
+    public String updateProfile(@RequestParam String name, 
+                                @RequestParam String mobile,
+                                @RequestParam String gender,
+                                @RequestParam Integer townId,
+                                @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        if (user == null) return REDIRECT_LOGIN;
+
+        boolean isMobileChanged = !user.getMobile().equals(mobile);
+        
+        user.setName(name);
+        user.setMobile(mobile);
+        user.setGender(gender);
+        Town town = townRepository.findById(townId).orElseThrow();
+        user.setTown(town);
+        
+        userRepository.save(user);
+
+        if (isMobileChanged) {
+            return "redirect:/logout"; 
+        }
+        
+        return "redirect:/profile?updated=true";
+    }
+
+    @GetMapping("/jobs/{jobId}/view-applicants")
+    public String viewApplicants(@PathVariable Integer jobId, Model model, 
+                                 @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        JobPost job = jobPostRepository.findById(jobId).orElseThrow();
+
+        if (!job.getFarmer().getId().equals(user.getId())) return REDIRECT_DASHBOARD;
+
+        List<Response> applicants = responseRepository.findByJobId(jobId);
+        model.addAttribute("job", job);
+        model.addAttribute("applicants", applicants);
+        return "view_applicants";
     }
 
     @PostMapping("/post-availability")
@@ -137,7 +244,7 @@ public class UserController {
                                    @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
         if (userDetails == null) return REDIRECT_LOGIN;
         User worker = userRepository.findByMobile(userDetails.getUsername());
-        if (worker == null || Boolean.TRUE.equals(worker.getIsBanned())) return REDIRECT_LOGIN; // Prevent banned users from posting
+        if (worker == null || Boolean.TRUE.equals(worker.getIsBanned())) return REDIRECT_LOGIN; 
 
         WorkerAvailability wa = new WorkerAvailability();
         wa.setWorker(worker);
@@ -152,17 +259,29 @@ public class UserController {
     }
 
     @GetMapping("/post-availability")
-    public String showPostAvailabilityForm(@AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+    public String showPostAvailabilityForm(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
         if (userDetails == null) return REDIRECT_LOGIN;
         User user = userRepository.findByMobile(userDetails.getUsername());
         if (user == null || !ROLE_WORKER.equals(user.getRole())) return REDIRECT_DASHBOARD;
+        
+        // CHANGED: Fetching distinct states instead of all towns
+        List<String> states = townRepository.findDistinctStates();
+        model.addAttribute("states", states);
+        
         return "post_availability";
     }
 
     @GetMapping("/post-job")
-    public String showPostJobForm(Model model) {
-        List<Town> towns = townRepository.findAll();
-        model.addAttribute(TOWNS_ATTRIBUTE, towns);
+    public String showPostJobForm(Model model, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) return REDIRECT_LOGIN;
+        User user = userRepository.findByMobile(userDetails.getUsername());
+        
+        // Security Check: Only Farmers can see the Post Job form
+        if (user == null || !ROLE_FARMER.equals(user.getRole())) return REDIRECT_DASHBOARD;
+        
+        // CHANGED: Fetching distinct states instead of all towns
+        List<String> states = townRepository.findDistinctStates();
+        model.addAttribute("states", states);
         return "post_job";
     }
 
@@ -176,14 +295,17 @@ public class UserController {
                           @RequestParam String preferredGender,
                           @RequestParam String startDate,
                           @RequestParam String endDate,
+                          @RequestParam Integer townId,
                           @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
         if (userDetails == null) return REDIRECT_LOGIN;
         User farmer = userRepository.findByMobile(userDetails.getUsername());
-        if (farmer == null || !ROLE_FARMER.equals(farmer.getRole()) || Boolean.TRUE.equals(farmer.getIsBanned())) return REDIRECT_DASHBOARD; // Prevent banned
+        if (farmer == null || !ROLE_FARMER.equals(farmer.getRole()) || Boolean.TRUE.equals(farmer.getIsBanned())) return REDIRECT_DASHBOARD; 
 
         JobPost job = new JobPost();
         job.setFarmer(farmer);
-        job.setTown(farmer.getTown());
+        Town selectedTown = townRepository.findById(townId).orElse(farmer.getTown());
+        job.setTown(selectedTown);
+        
         job.setWorkType(workType);
         job.setDescription(description);
         job.setWage(wage);
@@ -238,7 +360,7 @@ public class UserController {
         User user = userRepository.findByMobile(userDetails.getUsername());
         
         if (user != null) {
-            com.labor.model.Complaint complaint = new com.labor.model.Complaint();
+            Complaint complaint = new Complaint();
             complaint.setRaisedBy(user);
             complaint.setSubject(subject);
             complaint.setDescription(description);

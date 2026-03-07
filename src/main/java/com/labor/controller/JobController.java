@@ -41,6 +41,25 @@ public class JobController {
         return jobPostRepository.findByTownIdAndIsFullFalseOrderByCreatedAtDesc(townId);
     }
 
+    // Get all applicants for a specific job (Used by Farmer)
+    @GetMapping("/{jobId}/applicants")
+    public List<Response> getApplicants(@PathVariable Integer jobId) {
+        return responseRepository.findByJobId(jobId);
+    }
+
+    // Farmer accepts a specific worker for a job
+    @PostMapping("/responses/{responseId}/accept")
+    @Transactional
+    public ResponseEntity<?> acceptWorker(@PathVariable Integer responseId) {
+        Response response = responseRepository.findById(responseId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+        
+        response.setStatus("Accepted");
+        responseRepository.save(response);
+        
+        return ResponseEntity.ok("Worker accepted successfully");
+    }
+
     // Worker responds to a job
     @PostMapping("/{jobId}/respond")
     @Transactional
@@ -48,15 +67,12 @@ public class JobController {
         JobPost job = jobPostRepository.findById(jobId).orElseThrow();
         if (job.getIsFull()) return ResponseEntity.badRequest().body("Job is full");
 
-        // Prevent duplicate responses
         if (responseRepository.existsByJobIdAndWorkerId(jobId, workerId))
             return ResponseEntity.badRequest().body("Already responded");
 
-        // Add response
         Response response = new Response(jobId, workerId, LocalDateTime.now());
         responseRepository.save(response);
 
-        // Increment counter and check if full
         int respondedCount = job.getWorkersResponded() == null ? 0 : job.getWorkersResponded();
         job.setWorkersResponded(respondedCount + 1);
         if (job.getWorkersResponded() >= job.getWorkersNeeded()) {
@@ -67,6 +83,41 @@ public class JobController {
         return ResponseEntity.ok("Responded to job");
     }
 
+    // Worker acknowledges hire (clears notification bell)
+    @PostMapping("/responses/{responseId}/acknowledge")
+    @Transactional
+    public ResponseEntity<?> acknowledgeAcceptance(@PathVariable Integer responseId) {
+        Response response = responseRepository.findById(responseId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+        
+        response.setStatus("Hired"); 
+        responseRepository.save(response);
+        
+        return ResponseEntity.ok("Notification cleared");
+    }
+
+    // Farmer marks worker as finished and gives a rating (0-5)
+    @PostMapping("/responses/{responseId}/complete")
+    @Transactional
+    public ResponseEntity<?> completeJobAssignment(@PathVariable Integer responseId, 
+                                                   @RequestParam Integer rating,
+                                                   @RequestParam(required = false) String feedback) {
+        Response response = responseRepository.findById(responseId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+        
+        response.setStatus("Completed");
+        response.setRating(rating); // Saves the star rating
+        
+        if (feedback != null && !feedback.trim().isEmpty()) {
+            response.setFeedback(feedback.trim()); // Saves optional text feedback
+        }
+        
+        responseRepository.save(response);
+        
+        return ResponseEntity.ok("Job marked as completed and rated");
+    }
+
+    // Worker cancels their response/application
     @DeleteMapping("/{jobId}/respond")
     @Transactional
     public ResponseEntity<?> removeResponse(@PathVariable Integer jobId, @RequestParam Integer workerId) {

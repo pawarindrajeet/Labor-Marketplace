@@ -182,7 +182,9 @@ const translations = {
     availability_placeholder: "e.g., Available from Monday to Friday, 8 AM to 6 PM",
     wage_placeholder: "e.g., 500",
     example_start_date: "Example: 3 Mar 2026 9:00 AM",
-    example_end_date: "Example: 4 Mar 2026 5:00 PM"
+    example_end_date: "Example: 4 Mar 2026 5:00 PM",
+
+    status_expired: "Expired"
   },
   
   mr: {
@@ -367,7 +369,9 @@ const translations = {
     availability_placeholder: "उदा. सोमवार ते शुक्रवार उपलब्ध, सकाळी ८ ते संध्याकाळी ६",
     wage_placeholder: "उदा. ५००",
     example_start_date: "उदाहरण: ३ मार्च २०२६ सकाळी ९:००",
-    example_end_date: "उदाहरण: ४ मार्च २०२६ संध्याकाळी ५:००"
+    example_end_date: "उदाहरण: ४ मार्च २०२६ संध्याकाळी ५:००",
+
+    status_expired: "कालबाह्य"
   }
 };
 

@@ -29,6 +29,12 @@ public class JobPost {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
 
+    // AUTO-FILL DATE ON CREATION
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
     // Getters and setters
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }

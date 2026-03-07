@@ -7,4 +7,7 @@ import java.util.List;
 public interface JobPostRepository extends JpaRepository<JobPost, Integer> {
     List<JobPost> findByTownIdAndIsFullFalseOrderByCreatedAtDesc(Integer townId);
     List<JobPost> findByIsFullFalseOrderByCreatedAtDesc();
+    
+    // NEW: Find all jobs posted by a specific farmer to show in their history
+    List<JobPost> findByFarmerIdOrderByCreatedAtDesc(Integer farmerId);
 }
