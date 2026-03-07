@@ -36,6 +36,18 @@
     <i class="bi bi-check-circle-fill me-2"></i> <strong>Success!</strong> New location added to the database.
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
+  <div th:if="${param.success != null and param.success[0] == 'banToggled'}" class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert">
+    <i class="bi bi-hammer me-2"></i> <strong>Success!</strong> User ban status has been updated.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  <div th:if="${param.success != null and param.success[0] == 'userDeleted'}" class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert">
+    <i class="bi bi-trash-fill me-2"></i> <strong>Deleted!</strong> The user has been permanently removed from the system.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  <div th:if="${param.error != null and param.error[0] == 'adminDelete'}" class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert">
+    <i class="bi bi-shield-x me-2"></i> <strong>Access Denied!</strong> You cannot delete an Admin account.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
 
   <div class="row g-3 mb-5">
     <div class="col-md-3">
@@ -65,27 +77,27 @@
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card card-stats border-0 shadow-sm rounded-4 bg-success text-white">
+      <div class="card card-stats border-warning border-2 shadow-sm rounded-4 bg-white text-dark">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <h6 class="text-uppercase mb-1 fw-bold opacity-75">Total Posts</h6>
-              <h2 class="mb-0 fw-bold" th:text="${jobCount + availCount}">0</h2>
+              <h6 class="text-uppercase text-warning mb-1 fw-bold">Premium Users</h6>
+              <h2 class="mb-0 fw-bold" th:text="${premiumUsersCount}">0</h2>
             </div>
-            <i class="bi bi-megaphone fs-1 opacity-50"></i>
+            <i class="bi bi-star-fill fs-1 text-warning opacity-50"></i>
           </div>
         </div>
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card card-stats border-0 shadow-sm rounded-4 bg-danger text-white">
+      <div class="card card-stats border-success border-2 shadow-sm rounded-4 bg-white text-dark">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <h6 class="text-uppercase mb-1 fw-bold opacity-75">Pending Issues</h6>
-              <h2 class="mb-0 fw-bold" th:text="${pendingComplaints}">0</h2>
+              <h6 class="text-uppercase text-success mb-1 fw-bold">Est. Revenue</h6>
+              <h2 class="mb-0 fw-bold text-success">₹<span th:text="${estimatedRevenue}">0</span></h2>
             </div>
-            <i class="bi bi-exclamation-octagon fs-1 opacity-50"></i>
+            <i class="bi bi-cash-stack fs-1 text-success opacity-50"></i>
           </div>
         </div>
       </div>
@@ -107,6 +119,7 @@
                   <th class="px-4 py-3">Name</th>
                   <th class="py-3">Mobile Number</th>
                   <th class="py-3">Role</th>
+                  <th class="py-3">Plan</th>
                   <th class="py-3 text-center">Status</th>
                   <th class="px-4 py-3 text-end">Action</th>
                 </tr>
@@ -119,6 +132,12 @@
                     <span th:if="${u.role == 'Farmer'}" class="badge bg-success" th:text="${u.role}"></span>
                     <span th:if="${u.role == 'Worker'}" class="badge bg-orange" th:text="${u.role}"></span>
                   </td>
+                  
+                  <td>
+                    <span th:if="${!u.isPremium()}" class="badge bg-secondary">Free</span>
+                    <span th:if="${u.isPremium()}" class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> Premium</span>
+                  </td>
+
                   <td class="text-center">
                     <span th:if="${u.isBanned != true}" class="badge bg-light text-success border border-success"><i class="bi bi-check-circle-fill"></i> Active</span>
                     <span th:if="${u.isBanned == true}" class="badge bg-light text-danger border border-danger"><i class="bi bi-slash-circle-fill"></i> Banned</span>
@@ -126,10 +145,18 @@
                   <td class="px-4 text-end">
                     <div class="d-flex justify-content-end align-items-center gap-2">
                       <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3" data-bs-toggle="modal" th:data-bs-target="'#userModal' + ${u.id}"><i class="bi bi-eye"></i></button>
+                      
                       <form th:action="@{/admin/toggle-ban}" method="post" class="m-0">
                         <input type="hidden" name="userId" th:value="${u.id}">
-                        <button th:if="${u.isBanned != true}" type="submit" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3" onclick="return confirm('Ban this user?')"><i class="bi bi-hammer"></i></button>
+                        <button th:if="${u.isBanned != true}" type="submit" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3" onclick="return confirm('Ban this user? They will not be able to log in.')"><i class="bi bi-hammer"></i></button>
                         <button th:if="${u.isBanned == true}" type="submit" class="btn btn-sm btn-success fw-bold rounded-pill px-3" onclick="return confirm('Restore this user?')"><i class="bi bi-arrow-counterclockwise"></i></button>
+                      </form>
+
+                      <form th:action="@{/admin/delete-user}" method="post" class="m-0">
+                        <input type="hidden" name="userId" th:value="${u.id}">
+                        <button type="submit" class="btn btn-sm btn-danger fw-bold rounded-pill px-3" onclick="return confirm('WARNING: Are you sure you want to PERMANENTLY DELETE this user? All their jobs and history will be lost. This cannot be undone!')">
+                          <i class="bi bi-trash3-fill"></i>
+                        </button>
                       </form>
                     </div>
 
@@ -145,6 +172,16 @@
                             <div class="row mb-2"><div class="col-5 text-muted fw-bold">Mobile:</div><div class="col-7" th:text="${u.mobile}"></div></div>
                             <div class="row mb-2"><div class="col-5 text-muted fw-bold">Role:</div><div class="col-7" th:text="${u.role}"></div></div>
                             <div class="row mb-2"><div class="col-5 text-muted fw-bold">Location:</div><div class="col-7" th:text="${u.town != null ? u.town.name : 'Unknown'}"></div></div>
+                            
+                            <hr>
+                            <h6 class="fw-bold text-success mb-3"><i class="bi bi-credit-card-2-front"></i> Billing Details</h6>
+                            <div class="row mb-2"><div class="col-5 text-muted fw-bold">Current Plan:</div>
+                              <div class="col-7">
+                                <span th:if="${!u.isPremium()}" class="badge bg-secondary">Free Plan</span>
+                                <span th:if="${u.isPremium()}" class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> Premium</span>
+                              </div>
+                            </div>
+                            <div th:if="${u.isPremium()}" class="row mb-2"><div class="col-5 text-muted fw-bold">Expires On:</div><div class="col-7 text-danger" th:text="${#temporals.format(u.subscriptionEndDate, 'dd MMM yyyy')}"></div></div>
                           </div>
                         </div>
                       </div>

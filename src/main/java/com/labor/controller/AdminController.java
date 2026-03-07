@@ -60,6 +60,10 @@ public class AdminController {
         long totalAvailabilities = allAvailabilities.size();
         long pendingComplaints = allComplaints.stream().filter(c -> "Pending".equals(c.getStatus())).count();
 
+        // NEW: Premium Subscription Stats
+        long premiumUsersCount = allUsers.stream().filter(u -> u.isPremium() && !"Admin".equals(u.getRole())).count();
+        long estimatedRevenue = premiumUsersCount * 99; // ₹99 per premium user!
+
         // Sorting
         allJobs.sort((j1, j2) -> {
             if (j1.getCreatedAt() == null && j2.getCreatedAt() == null) return 0;
@@ -89,16 +93,42 @@ public class AdminController {
         model.addAttribute("availCount", totalAvailabilities);
         model.addAttribute("pendingComplaints", pendingComplaints);
         
+        // NEW STATS ADDED TO MODEL
+        model.addAttribute("premiumUsersCount", premiumUsersCount);
+        model.addAttribute("estimatedRevenue", estimatedRevenue);
+        
         return "admin_dashboard";
     }
 
     @PostMapping("/toggle-ban")
     public String toggleBan(@RequestParam Integer userId) {
         User user = userRepository.findById(userId).orElseThrow();
+        // Prevent Admin from banning themselves!
+        if ("Admin".equals(user.getRole())) {
+            return "redirect:/admin/dashboard?error=adminBan";
+        }
+        
         Boolean currentStatus = user.getIsBanned();
         user.setIsBanned(currentStatus != null ? !currentStatus : true);
         userRepository.save(user);
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard?success=banToggled";
+    }
+
+    // NEW ENDPOINT: Delete User
+    @PostMapping("/delete-user")
+    public String deleteUser(@RequestParam Integer userId, @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        User currentUser = userRepository.findByMobile(userDetails.getUsername());
+        if (currentUser == null || !"Admin".equals(currentUser.getRole())) return "redirect:/";
+
+        User userToDelete = userRepository.findById(userId).orElseThrow();
+        
+        // Prevent Admin from deleting themselves!
+        if ("Admin".equals(userToDelete.getRole())) {
+            return "redirect:/admin/dashboard?error=adminDelete";
+        }
+
+        userRepository.delete(userToDelete);
+        return "redirect:/admin/dashboard?success=userDeleted";
     }
     
     @PostMapping("/resolve-complaint")
@@ -109,7 +139,7 @@ public class AdminController {
         return "redirect:/admin/dashboard";
     }
     
-    // UPDATED: Handles State, District, and Village with Duplicate Checking
+    // Handles State, District, and Village with Duplicate Checking
     @PostMapping("/add-town")
     public String addTown(@RequestParam String state, 
                           @RequestParam String district, 
