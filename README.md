@@ -1,6 +1,6 @@
-# 🌾 Labor Marketplace
+# 🌾 Shetkari-Kamgar (Labor Marketplace)
 
-A bilingual (English/Marathi) web application connecting farmers and workers in Maharashtra, India. Built with Spring Boot, PostgreSQL, and modern web technologies.
+A comprehensive, bilingual (English/Marathi) web application designed to bridge the gap between farmers and agricultural workers in Maharashtra, India. Built with Spring Boot, PostgreSQL, and modern web technologies, featuring a robust SaaS subscription model and a powerful Admin Control Panel.
 
 ---
 
@@ -11,247 +11,146 @@ A bilingual (English/Marathi) web application connecting farmers and workers in 
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Database Setup](#database-setup)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [Architecture](#architecture)
-- [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
+- [Architecture & APIs](#architecture--apis)
+- [Monetization Model](#monetization-model)
+- [Future Enhancements](#future-enhancements)
 - [License](#license)
 
 ---
 
 ## ✨ Features
 
-### Core Features
-- 🔐 **User Authentication & Authorization**
-  - Secure login/registration
-  - Role-based access (Farmer/Worker)
-  - Password encryption with Spring Security
+### 👑 Super Admin Control Panel
+- **Comprehensive Dashboard:** Live statistics on total users, active posts, pending issues, premium users, and estimated revenue.
+- **User Management:** View detailed user profiles, check subscription statuses, temporarily ban rule-breakers, or permanently delete accounts.
+- **Grievance System:** Review and resolve user complaints (e.g., fake profiles, payment issues) with one click.
+- **Dynamic Database Management:** Add new States, Districts, and Villages directly from the dashboard with duplicate-prevention constraints.
+- **Export Data:** Generate and download complete system reports as CSV files for offline analysis.
 
-- 💼 **Job Management**
-  - Post and manage job listings
-  - Set wage, location, skills required
-  - Track worker responses
-  - Mark jobs as full
+### 💎 Premium Subscription Model (SaaS)
+- **Freemium Tier:** Free users are strictly limited to 1 active job/availability post to test the platform.
+- **Premium Tier (₹99/month):** Unlocks unlimited posting capabilities and adds a verified "Premium" badge to the user's profile.
+- **Simulated Payment Gateway:** Includes a fully animated mock UPI payment gateway modal, ready to be swapped out for Razorpay or Stripe.
 
-- 👥 **Worker Profiles**
-  - Post availability and skills
-  - Set preferred work locations
-  - View job opportunities
+### 📍 Smart Dynamic Locations
+- **Hierarchical Dropdowns:** State ➔ District ➔ Village dynamic loading via asynchronous REST APIs.
+- **Fast Loading:** Backend only sends necessary data, drastically reducing load times during registration and job posting.
+- **Pre-loaded Database:** Comes with 90+ pre-configured towns and villages across Sangli, Satara, and Kolhapur.
 
-- 🔍 **Smart Filtering & Search**
-  - Filter by town/location
-  - Filter by gender preference
-  - Sort by wage and date
-  - Real-time search functionality
+### 🔐 Advanced Security & Profiles
+- **Profile Management:** Users can update their personal details and active locations.
+- **Secure Password Resets:** Built-in password change functionality that strictly verifies the old BCrypt-hashed password before allowing updates.
+- **Anti-Lockout Logic:** Admins are programmatically prevented from accidentally banning or deleting their own accounts.
 
-### Localization
-- 🌐 **Bilingual Support**
-  - English and Marathi translations
-  - 60+ town names in Marathi
-  - Instant language switching
-  - Persistent language preference (localStorage)
+### 💼 Core Job/Worker Matchmaking
+- **For Farmers:** Post detailed jobs (wage, needed workers, skills, dates), review applicants, mark jobs as "Full", and delete old history.
+- **For Workers:** Post availability, browse local jobs, apply with one click, and track application statuses via a live notification bell.
 
-### UI/UX
-- 🎨 **Modern Design**
-  - Custom theme with green/orange/teal color scheme
-  - Responsive layout (mobile, tablet, desktop)
-  - Smooth animations and transitions
-  - Accessibility compliant
+### 🌐 Localization (i18n)
+- **Bilingual Support:** Instant toggling between English and Marathi via client-side translation scripts.
+- **Persistent Preferences:** User language choice is saved in `localStorage` across sessions.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Java 17+** - Programming language
-- **Spring Boot 3.2.0** - Web framework
-- **Spring Data JPA** - Database ORM
-- **Spring Security** - Authentication & Authorization
-- **PostgreSQL 12+** - Database
-- **Maven** - Build tool
+- **Java 17+** - **Spring Boot 3.2.0** (Web, Data JPA, Security)
+- **PostgreSQL 12+** (Relational Database)
+- **Maven** (Build Tool)
 
 ### Frontend
-- **HTML5** - Markup
-- **CSS3** - Styling with custom theme
-- **JavaScript (Vanilla)** - Interactive features
-- **Bootstrap 5.3.2** - Responsive framework
-- **Bootstrap Icons** - Icon library
-- **Thymeleaf** - Template engine
-
-### Development Tools
-- **VS Code** - Editor
-- **Git** - Version control
-- **Docker** (optional) - Containerization
+- **HTML5 & CSS3** (Custom agriculture-themed UI)
+- **JavaScript (ES6+)** (Async API fetching, animations, dynamic DOM manipulation)
+- **Bootstrap 5.3.2** (Responsive layout & Modals)
+- **Bootstrap Icons 1.11.1**
+- **Thymeleaf** (Server-side template rendering)
 
 ---
 
 ## 📁 Project Structure
 
+
 ```
+
 labor/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/labor/
 │   │   │   ├── LaborApplication.java          # Main app entry
-│   │   │   ├── DataLoader.java                # Initial data loader
+│   │   │   ├── DataLoader.java                # Auto-generates Admin & Towns
 │   │   │   ├── config/
-│   │   │   │   └── SecurityConfig.java        # Spring Security setup
+│   │   │   │   └── SecurityConfig.java        # Route protection & BCrypt
 │   │   │   ├── controller/
-│   │   │   │   ├── HomeController.java        # Home/landing routes
-│   │   │   │   ├── UserController.java        # Auth & user routes
-│   │   │   │   └── JobController.java         # Job management routes
+│   │   │   │   ├── AdminController.java       # Admin dashboard & management
+│   │   │   │   ├── LocationApiController.java # Dynamic State/District APIs
+│   │   │   │   ├── SubscriptionController.java# Upgrades & mock payments
+│   │   │   │   └── UserController.java        # Core auth, posts, and profiles
 │   │   │   ├── model/
-│   │   │   │   ├── User.java                  # User entity
-│   │   │   │   ├── JobPost.java               # Job entity
-│   │   │   │   ├── Response.java              # Job response entity
-│   │   │   │   ├── WorkerAvailability.java    # Worker profile entity
-│   │   │   │   ├── Town.java                  # Town entity
-│   │   │   │   └── Response.java              # Generic response DTO
-│   │   │   ├── repository/
-│   │   │   │   ├── UserRepository.java        # User data access
-│   │   │   │   ├── JobPostRepository.java     # Job data access
-│   │   │   │   ├── ResponseRepository.java    # Response data access
-│   │   │   │   ├── WorkerAvailabilityRepository.java
-│   │   │   │   └── TownRepository.java        # Town data access
+│   │   │   │   ├── User.java                  # Includes Subscription & Ban flags
+│   │   │   │   ├── JobPost.java
+
+│   │   │   │   ├── Complaint.java             # Grievance entity
+│   │   │   │   └── Town.java                  # State/District/Village entity
+│   │   │   ├── repository/                    # Spring Data JPA Interfaces
 │   │   │   └── service/
-│   │   │       └── CustomUserDetailsService.java # User authentication
+│   │   │       └── CustomUserDetailsService.java
 │   │   └── resources/
-│   │       ├── application.properties         # App configuration
+│   │       ├── application.properties         # Server/DB config (Port 8081)
 │   │       └── templates/
-│   │           ├── landing.html               # Home page
-│   │           ├── login.html                 # Login page
-│   │           ├── register.html              # Registration page
-│   │           ├── worker_feed.html           # Worker dashboard
-│   │           ├── farmer_dashboard.html      # Farmer dashboard
-│   │           ├── post_job.html              # Post job form
-│   │           ├── post_availability.html     # Post availability form
-│   │           ├── custom-theme.css           # Custom styling
-│   │           └── translations.js            # i18n translations
-│   └── target/                                # Compiled output
-├── pom.xml                                    # Maven dependencies
-├── schema.sql                                 # Database schema
-├── setup-database.sh                          # Database setup script
-├── clean-slate-database.sh                    # Database reset script
-├── init-database.sql                          # SQL initialization
-├── DATABASE-SETUP.md                          # Database guide
-├── DB-QUICK-REFERENCE.md                      # Database quick ref
-└── README.md                                  # This file
-```
+│   │           ├── admin_dashboard.html       # Super Admin UI
+│   │           ├── pricing.html               # Subscription plans & Gateway
+│   │           ├── profile.html               # User details & Password update
+│   │           ├── register.html              # Dynamic location registration
+│   │           ├── worker_feed.html           # Worker UI
+│   │           ├── farmer_dashboard.html      # Farmer UI
+│   │           └── translations.js            # i18n Dictionary
+└── pom.xml                                    # Dependencies
 
----
-
-## 📦 Prerequisites
-
-### System Requirements
-- **Java 17+** - [Download](https://www.oracle.com/java/technologies/downloads/)
-- **Maven 3.8+** - [Download](https://maven.apache.org/download.cgi)
-- **PostgreSQL 12+** - [Download](https://www.postgresql.org/download/)
-- **Git** - [Download](https://git-scm.com/download)
-
-### Verify Installation
-```bash
-java -version
-mvn -version
-psql --version
-git --version
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Clone Repository
-```bash
-cd /Users/pankaj-mac/test/myprojects
-git clone <repository-url> labor
-cd labor
+### 1. Database Setup
+Ensure PostgreSQL is running and create the database:
+```sql
+CREATE DATABASE labor_marketplace;
+CREATE USER labor_user WITH PASSWORD 'labor_password_123';
+GRANT ALL PRIVILEGES ON DATABASE labor_marketplace TO labor_user;
+
 ```
 
-### 2. Setup Database
-```bash
-# Make scripts executable
-chmod +x setup-database.sh clean-slate-database.sh
+### 2. Build & Run
 
-# Run setup (creates fresh database)
-./setup-database.sh
-
-# Or reset completely (delete all data)
-./clean-slate-database.sh
-```
-
-**Database Credentials:**
-- Database: `labor_marketplace`
-- User: `labor_user`
-- Password: `labor_password_123`
-
-### 3. Build Application
 ```bash
 mvn clean compile
-```
-
-### 4. Start Application
-```bash
 mvn spring-boot:run
+
 ```
 
-### 5. Access Application
-Open browser and navigate to: **http://localhost:8080**
+### 3. Access Application
 
----
+Open browser and navigate to: **http://localhost:8081**
 
-## 🗄️ Database Setup
+### 4. Default Admin Login
 
-### Quick Setup Commands
+The `DataLoader` automatically creates an untouchable Super Admin on first boot:
 
-```bash
-# Initial setup
-./setup-database.sh
-
-# Reset to clean state
-./clean-slate-database.sh
-
-# Connect to database
-psql -U labor_user -d labor_marketplace
-
-# Backup database
-pg_dump -U labor_user labor_marketplace > backup.sql
-
-# Restore database
-./clean-slate-database.sh
-psql -U labor_user -d labor_marketplace < backup.sql
-```
-
-### Database Schema
-
-**5 Main Tables:**
-
-1. **town** - Marathi towns (60+ records)
-2. **users** - Farmer & Worker profiles
-3. **job_post** - Job listings by farmers
-4. **response** - Worker applications to jobs
-5. **worker_availability** - Worker availability profiles
-
-**Key Relationships:**
-```
-Town → Users → JobPost → Response
-       ↓
-       WorkerAvailability
-```
-
-For detailed database documentation, see: [`DATABASE-SETUP.md`](DATABASE-SETUP.md)
+* **Mobile Number:** `9999999999`
+* **Password:** `admin123`
 
 ---
 
 ## ⚙️ Configuration
 
-### Application Properties
 File: `src/main/resources/application.properties`
 
 ```properties
 # Server
-server.port=8080
+server.port=8081
 
 # Database
 spring.datasource.url=jdbc:postgresql://localhost:5432/labor_marketplace
@@ -261,230 +160,66 @@ spring.datasource.password=labor_password_123
 # JPA/Hibernate
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-```
 
-### Environment Variables
-```bash
-export DB_PASSWORD='labor_password_123'
-export SPRING_DATASOURCE_PASSWORD='labor_password_123'
 ```
 
 ---
 
-## 📖 Usage
-
-### For Farmers
-1. **Register** - Create account with role "Farmer"
-2. **Post Jobs** - Click "Post Job" to create job listings
-3. **Manage Jobs** - View responses and mark jobs as full
-4. **Browse Workers** - See available workers in your area
-
-### For Workers
-1. **Register** - Create account with role "Worker"
-2. **Post Availability** - Share skills and availability
-3. **Browse Jobs** - Search jobs by location and wage
-4. **Apply** - Express interest in jobs
-5. **Track Status** - View job responses
-
-### Language
-- Click **English/मराठी** dropdown in navbar
-- Language switches instantly
-- Preference saved automatically
-
----
-
-## 🏗️ Architecture
-
-### MVC Pattern
-```
-Request → Router (Controller) → Service → Repository → Database
-           ↓
-        Response
-        (Thymeleaf Template)
-```
-
-### Security Flow
-```
-Login Form → UserController → CustomUserDetailsService
-              ↓
-         Spring Security → Session Created
-              ↓
-         Redirect to Dashboard
-```
-
-### Data Flow
-1. **Frontend** - HTML forms capture user input
-2. **Controller** - Routes requests, validates input
-3. **Service Layer** - Business logic (future enhancement)
-4. **Repository** - Database access via Spring Data JPA
-5. **Database** - PostgreSQL persistence
-
----
-
-## 🔌 API Endpoints
+## 🔌 Core API Endpoints
 
 ### Public Endpoints
-- `GET /` - Landing page
-- `GET /login` - Login page
-- `GET /register` - Registration page
-- `POST /register` - Register new user
 
-### Authenticated Endpoints
+* `GET /api/locations/states` - Returns unique states
+* `GET /api/locations/districts?state={state}` - Returns districts for a state
+* `GET /api/locations/towns?state={state}&district={district}` - Returns specific villages
 
-#### User Routes
-- `GET /dashboard` - Redirects to role-based dashboard
-- `POST /logout` - User logout
+### User & Post Routes (Protected)
 
-#### Farmer Routes
-- `GET /farmer-dashboard` - Farmer dashboard
-- `POST /post-job` - Create job post
-- `POST /mark-full/{jobId}` - Mark job as full
-- `POST /delete-job/{jobId}` - Delete job post
+* `POST /post-job` - Validates subscription limit before posting
+* `POST /post-availability` - Validates subscription limit before posting
+* `POST /profile/update` - Modifies core details
+* `POST /profile/change-password` - BCrypt validation and update
 
-#### Worker Routes
-- `GET /worker-feed` - Worker job feed
-- `POST /post-availability` - Create availability profile
-- `POST /express-interest/{jobId}` - Apply for job
-- `POST /delete-availability/{id}` - Delete availability
+### Admin Routes (Role: ADMIN)
+
+* `GET /admin/dashboard` - Fetches massive data aggregation
+* `POST /admin/toggle-ban` - Flips `isBanned` boolean
+* `POST /admin/delete-user` - Cascading deletion of user and related entities
+* `POST /admin/add-town` - Adds location with duplicate prevention
 
 ---
 
-## 🔐 Security Features
+## 💎 Monetization Model
 
-- ✅ Password encryption (BCrypt)
-- ✅ Session-based authentication
-- ✅ CSRF protection
-- ✅ Role-based access control (Farmer/Worker)
-- ✅ Mobile number uniqueness constraint
-- ✅ SQL injection prevention (parameterized queries)
+The application utilizes a **SaaS (Software as a Service)** approach to generate revenue.
 
----
-
-## 🌐 Internationalization (i18n)
-
-### Supported Languages
-- English (en)
-- Marathi (mr)
-
-### Translation Files
-- `src/main/resources/templates/translations.js` - Translation object
-- Town names: 60+ Marathi translations
-
-### Adding New Translations
-Edit `translations.js`:
-```javascript
-const translations = {
-  en: { key: "English text" },
-  mr: { key: "मराठी मजकूर" }
-};
-```
-
----
-
-## 📊 Sample Data
-
-### Test Credentials
-After setup, database includes 60+ towns. You can:
-1. Register as Farmer with mobile: 9876543210
-2. Register as Worker with mobile: 9876543211
-3. Create test job posts and applications
-
----
-
-## 🐛 Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Port 8080 in use | `lsof -ti:8080 \| xargs kill -9` |
-| Database connection error | Verify PostgreSQL is running |
-| "Database already exists" | Run `./clean-slate-database.sh` |
-| Build fails | Run `mvn clean install` |
-| Blank page loading | Clear browser cache and reload |
+1. **Free Tier:** Users are restricted to maintaining exactly **1 active post** in the database at any given time. Attempting to post a second job automatically triggers a redirect to the `/pricing` page.
+2. **Premium Tier:** Upgrading updates the database `subscriptionPlan` to `PREMIUM` and sets a `subscriptionEndDate` 30 days in the future, bypassing all limits and injecting Premium UI badges.
 
 ---
 
 ## 📈 Future Enhancements
 
-- [ ] Email notifications
-- [ ] SMS notifications
-- [ ] Rating & review system
-- [ ] Payment integration
-- [ ] Advanced search filters
-- [ ] Map integration
-- [ ] Analytics dashboard
-- [ ] Mobile app (React Native)
-- [ ] Docker containerization
-- [ ] CI/CD pipeline
-
----
-
-## 📝 Code Quality
-
-- ✅ Zero VS Code errors
-- ✅ SonarQube compliant
-- ✅ Accessibility WCAG compliant
-- ✅ Optional chaining in JavaScript
-- ✅ Proper indexing in database
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
----
-
-## 📄 License
-
-This project is proprietary and for educational purposes.
+* [ ] **Live Payment Gateway Integration:** Replace the mock JS timeout in `pricing.html` with Razorpay or Stripe Webhooks.
+* [ ] **WhatsApp API Integration:** Use Twilio to send automated WhatsApp messages when a worker applies for a job.
+* [ ] **AI Wage Predictor:** Integrate a Python/Flask microservice to analyze local data and suggest "Fair Market Wages" to farmers.
+* [ ] **Machine Learning Matchmaking:** Recommend specific jobs to workers based on their historical application data.
 
 ---
 
 ## 👨‍💻 Author
 
-**Indrajeet** - Created for farmers and workers in Maharashtra
+**Indrajeet Pawar** *Master of Computer Applications (MCA) | Full Stack Developer*
+Created to empower the agricultural workforce of Maharashtra.
 
 ---
 
-## 📞 Support
+## 📄 License
 
-For issues or questions:
-1. Check [`DATABASE-SETUP.md`](DATABASE-SETUP.md) for database issues
-2. Review [`DB-QUICK-REFERENCE.md`](DB-QUICK-REFERENCE.md) for quick commands
-3. Check application logs for error details
+This project is proprietary and intended for educational and portfolio purposes.
 
----
+Last Updated: March 2026
 
-## 🎯 Getting Started Checklist
+```
 
-- [ ] Install Java 17+
-- [ ] Install PostgreSQL
-- [ ] Clone repository
-- [ ] Run `./setup-database.sh`
-- [ ] Run `mvn clean compile`
-- [ ] Run `mvn spring-boot:run`
-- [ ] Open http://localhost:8080
-- [ ] Register as Farmer or Worker
-- [ ] Test language switching
-- [ ] Create test job post
-- [ ] Apply for job
-
----
-
-## 📚 Documentation
-
-- [Database Setup Guide](DATABASE-SETUP.md)
-- [Database Quick Reference](DB-QUICK-REFERENCE.md)
-- [Spring Boot Docs](https://spring.io/projects/spring-boot)
-- [PostgreSQL Docs](https://www.postgresql.org/docs/)
-
----
-
-**Happy coding! 🚀**
-
-Last Updated: February 19, 2026
+```
