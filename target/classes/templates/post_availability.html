@@ -25,6 +25,11 @@
         <option value="mr">मराठी</option>
       </select>
       <a class="nav-link fw-bold text-secondary" href="/dashboard"><i class="bi bi-speedometer2"></i> <span data-i18n="worker_dashboard">Dashboard</span></a>
+      
+      <a href="/profile" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3">
+        <i class="bi bi-person-circle"></i> Profile
+      </a>
+
       <form class="d-inline" th:action="@{/logout}" method="post">
         <button class="btn btn-outline-danger btn-sm rounded-pill px-3" type="submit"><i class="bi bi-box-arrow-right"></i> <span data-i18n="navbar_logout">Logout</span></button>
       </form>
@@ -37,7 +42,7 @@
     <div class="col-md-8">
       <div class="card shadow border-0 rounded-4">
         <div class="card-header bg-orange text-center py-3 rounded-top-4">
-          <h4 class="mb-0 fw-bold"><i class="bi bi-megaphone-fill"></i> <span data-i18n="post_availability_title">Post Your Availability</span></h4>
+          <h4 class="mb-0 fw-bold text-white"><i class="bi bi-megaphone-fill"></i> <span data-i18n="post_availability_title">Post Your Availability</span></h4>
         </div>
         <div class="card-body p-4">
           <form th:action="@{/post-availability}" method="post">
@@ -62,24 +67,25 @@
               
               <div class="row g-2">
                 <div class="col-md-6 mb-2">
-                  <select class="form-select border-0" id="stateSelector" onchange="updateDistricts()">
-                    <option value="" data-i18n="select_state">1. Select State</option>
-                    <option value="Maharashtra">Maharashtra</option>
+                  <select class="form-select border-0 shadow-sm" id="stateSelector" onchange="loadDistricts()" required>
+                    <option value="">1. Select State</option>
+                    <option th:each="state : ${states}" th:value="${state}" th:text="${state}"></option>
                   </select>
                 </div>
                 <div class="col-md-6 mb-2">
-                  <select class="form-select border-0" id="districtSelector" onchange="updateTowns()" disabled>
-                    <option value="" data-i18n="first_select_state">2. First Select State</option>
+                  <select class="form-select border-0 shadow-sm" id="districtSelector" onchange="loadTowns()" required disabled>
+                    <option value="">2. First Select State</option>
                   </select>
                 </div>
               </div>
               
-              <div>
-                <select class="form-select border-success fw-bold" id="townSelector" name="townId" required disabled>
-                  <option value="" data-i18n="select_village">3. Select Village / Town</option>
+              <div class="mt-2">
+                <select class="form-select border-success fw-bold shadow-sm" id="townSelector" name="townId" required disabled>
+                  <option value="">3. Select Village / Town</option>
                 </select>
               </div>
             </div>
+
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label for="startDate" class="form-label fw-bold text-secondary"><i class="bi bi-calendar-event text-success"></i> <span data-i18n="start_date_label">Start Date & Time</span></label>
@@ -103,7 +109,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-  // Date Picker Logic
   flatpickr("#startDate", {
     enableTime: true,
     dateFormat: "Y-m-d H:i",
@@ -125,57 +130,69 @@
 
 <script src="/translations.js?v=2"></script>
 
-<script th:inline="javascript">
-  // Safely grab the actual database towns from Spring Boot into a JavaScript array!
-  const databaseTowns = /*[[${towns}]]*/ [];
-
-  function updateDistricts() {
+<script>
+  async function loadDistricts() {
     const state = document.getElementById("stateSelector").value;
-    const distSelect = document.getElementById("districtSelector");
+    const districtSelect = document.getElementById("districtSelector");
     const townSelect = document.getElementById("townSelector");
 
-    // Reset dropdowns
-    distSelect.innerHTML = '<option value="">2. Select District</option>';
+    districtSelect.innerHTML = '<option value="">2. Select District</option>';
+    districtSelect.disabled = true;
     townSelect.innerHTML = '<option value="">3. Select Village / Town</option>';
     townSelect.disabled = true;
 
-    if (state === "Maharashtra") {
-      distSelect.innerHTML += '<option value="Sangli">Sangli</option>';
-      distSelect.disabled = false;
-    } else {
-      distSelect.disabled = true;
+    if (!state) return;
+
+    try {
+      const response = await fetch(`/api/locations/districts?state=${encodeURIComponent(state)}`);
+      const districts = await response.json();
+
+      if (districts.length > 0) {
+        districts.forEach(d => {
+          let option = document.createElement("option");
+          option.value = d;
+          option.textContent = d;
+          districtSelect.appendChild(option);
+        });
+        districtSelect.disabled = false;
+      }
+    } catch (error) {
+      console.error("Error fetching districts:", error);
     }
   }
 
-  function updateTowns() {
+  async function loadTowns() {
+    const state = document.getElementById("stateSelector").value;
     const district = document.getElementById("districtSelector").value;
     const townSelect = document.getElementById("townSelector");
 
-    // Reset towns
     townSelect.innerHTML = '<option value="">3. Select Village / Town</option>';
+    townSelect.disabled = true;
 
-    if (district === "Sangli") {
-      townSelect.disabled = false;
-      
-      // Loop through our actual Java database towns and add them to the dropdown!
-      if (databaseTowns && databaseTowns.length > 0) {
-        databaseTowns.forEach(town => {
-          const option = document.createElement("option");
-          option.value = town.id;
+    if (!state || !district) return;
+
+    try {
+      const response = await fetch(`/api/locations/towns?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`);
+      const towns = await response.json();
+
+      if (towns.length > 0) {
+        towns.forEach(t => {
+          let option = document.createElement("option");
+          option.value = t.id; 
           
-          // Apply Marathi translation instantly if needed
           const currentLang = localStorage.getItem('language') || 'en';
-          if (currentLang === 'mr' && typeof townTranslations !== 'undefined' && townTranslations[town.name]) {
-            option.textContent = townTranslations[town.name];
+          if (currentLang === 'mr' && typeof townTranslations !== 'undefined' && townTranslations[t.name]) {
+            option.textContent = townTranslations[t.name];
           } else {
-            option.textContent = town.name;
+            option.textContent = t.name;
           }
           
           townSelect.appendChild(option);
         });
+        townSelect.disabled = false;
       }
-    } else {
-      townSelect.disabled = true;
+    } catch (error) {
+      console.error("Error fetching villages:", error);
     }
   }
 </script>
